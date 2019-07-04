@@ -75,22 +75,8 @@ rewrite (Nat2Z.inj_sub _ _ hle); f_equal; lia.
 Qed.
 
 (* -------------------------------------------------------------- *)
-Definition nat7   : nat := 7.
-Definition nat15  : nat := nat7.+4.+4.
-Definition nat31  : nat := nat15.+4.+4.+4.+4.
-Definition nat63  : nat := nat31.+4.+4.+4.+4.+4.+4.+4.+4.
-Definition nat127 : nat := nat63.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.
-Definition nat255 : nat := nat127.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.+4.
-
 Definition wsize_size_minus_1 (s: wsize) : nat :=
-  match s with
-  | U8   => nat7
-  | U16  => nat15
-  | U32  => nat31
-  | U64  => nat63
-  | U128 => nat127
-  | U256 => nat255
-  end.
+  int_of_wsize s - 1.
 
 Coercion nat_of_wsize (sz : wsize) :=
   (wsize_size_minus_1 sz).+1.
@@ -261,9 +247,7 @@ Notation u256 := (word U256).
 Definition x86_shift_mask (s:wsize) : u8 :=
   match s with 
   | U8 | U16 | U32 => wrepr U8 31
-  | U64  => wrepr U8 63
-  | U128 => wrepr U8 127
-  | U256 => wrepr U8 255
+  | U64 | U128 | U256 => wrepr U8 (wsize_size_minus_1 s)
   end%Z.
 
 Definition wbit_n sz (w:word sz) (n:nat) : bool := 

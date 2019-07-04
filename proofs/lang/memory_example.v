@@ -45,7 +45,7 @@ Lemma zip_nil S T (m: seq T) : zip [::] m = @ nil (S * T).
 Proof. by case: m. Qed.
 
 Lemma cut_wbase_Uptr sz :
-  wbase Uptr = (wsize_size sz * CoqWord.word.modulus (nat63.+3 - (Nat.log2 (wsize_size_minus_1 sz))))%Z.
+  wbase Uptr = (wsize_size sz * CoqWord.word.modulus (63.+3 - (Nat.log2 (wsize_size_minus_1 sz))))%Z.
 Proof. by case: sz; vm_compute. Qed.
 
 Section Align.

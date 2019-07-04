@@ -27,7 +27,7 @@
 
 (* ** Imports and settings *)
 From mathcomp Require Import all_ssreflect all_algebra.
-Require Import ZArith gen_map utils strings.
+Require Import DecimalString ZArith gen_map utils strings.
 Import Utf8.
 
 Set Implicit Arguments.
@@ -44,6 +44,16 @@ Variant wsize :=
   | U64
   | U128
   | U256.
+
+Definition int_of_wsize (sz: wsize) : nat :=
+  match sz with
+  | U8 => 8
+  | U16 => 16
+  | U32 => 32
+  | U64 => 64
+  | U128 => 128
+  | U256 => 256
+  end.
 
 Variant stype : Set :=
 | sbool
@@ -66,20 +76,16 @@ Coercion wsize_of_velem (ve: velem) : wsize :=
   | VE64 => U64
   end.
 
+Definition nat_of_velem (ve: velem) : nat :=
+  int_of_wsize (wsize_of_velem ve).
+
 (* Size in bits of the elements of a pack. *)
 Variant pelem :=
 | PE1 | PE2 | PE4 | PE8 | PE16 | PE32 | PE64 | PE128.
 
 (* -------------------------------------------------------------------- *)
 Definition string_of_wsize (sz: wsize) : string :=
-  match sz with
-  | U8 => "U8"
-  | U16 => "U16"
-  | U32 => "U32"
-  | U64 => "U64"
-  | U128 => "U128"
-  | U256 => "U256"
-  end.
+  "U" ++ NilEmpty.string_of_int (Nat.to_int (int_of_wsize sz)).
 
 Definition string_of_stype (ty: stype) : string :=
   match ty with
@@ -90,12 +96,7 @@ Definition string_of_stype (ty: stype) : string :=
   end.
 
 Definition string_of_velem (ve: velem) : string :=
-  match ve with
-  | VE8 => "VE8"
-  | VE16 => "VE16"
-  | VE32 => "VE32"
-  | VE64 => "VE64"
-  end.
+  "VE" ++ NilEmpty.string_of_int (Nat.to_int (nat_of_velem ve)).
 
 (* -------------------------------------------------------------------- *)
 Notation sword8   := (sword U8).
@@ -168,24 +169,7 @@ Canonical  velem_eqType      := Eval hnf in EqType velem velem_eqMixin.
 (* ** Comparison 
  * -------------------------------------------------------------------- *)
 Definition wsize_cmp s s' := 
-  match s, s' with
-  | U8, U8 => Eq
-  | U8, (U16 | U32 | U64 | U128 | U256)  => Lt
-  | U16, U8 => Gt
-  | U16, U16 => Eq
-  | U16, (U32 | U64 | U128 | U256) => Lt
-  | U32, (U8 | U16) => Gt
-  | U32, U32 => Eq
-  | U32, (U64 | U128 | U256) => Lt
-  | U64, (U8 | U16 | U32) => Gt
-  | U64, U64 => Eq
-  | U64, ( U128 | U256) => Lt
-  | U128, (U8 | U16 | U32 | U64) => Gt
-  | U128, U128 => Eq
-  | U128, U256 => Lt
-  | U256, (U8 | U16 | U32 | U64 | U128) => Gt
-  | U256, U256 => Eq
-  end.
+  Nat.compare (int_of_wsize s) (int_of_wsize s').
 
 Instance wsizeO : Cmp wsize_cmp.
 Proof.
