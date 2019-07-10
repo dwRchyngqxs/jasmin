@@ -60,7 +60,7 @@ Module Ma := MakeMalloc Mi.
 Definition type_in_array t :=
   match t with
   | sarr ws _ => sword ws
-  | _         => sword U64
+  | _         => sword W64
   end.
 
 Module CBEA.

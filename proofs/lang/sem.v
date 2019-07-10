@@ -578,9 +578,9 @@ Definition x86_MOV sz (x: word sz) : exec values :=
 Definition x86_MOVSX szo szi (x: word szi) : exec values :=
   Let _ :=
     match szi with
-    | U8 => check_size_16_64 szo
-    | U16 => check_size_32_64 szo
-    | U32 => assert (szo == U64) ErrType
+    | W8 => check_size_16_64 szo
+    | W16 => check_size_32_64 szo
+    | W32 => assert (szo == W64) ErrType
     | _ => type_error
     end in
   ok [:: Vword (sign_extend szo x) ].
@@ -588,8 +588,8 @@ Definition x86_MOVSX szo szi (x: word szi) : exec values :=
 Definition x86_MOVZX szo szi (x: word szi) : exec values :=
   Let _ :=
     match szi with
-    | U8 => check_size_16_64 szo
-    | U16 => check_size_32_64 szo
+    | W8 => check_size_16_64 szo
+    | W16 => check_size_32_64 szo
     | _ => type_error
     end in
   ok [:: Vword (zero_extend szo x) ].
@@ -706,7 +706,7 @@ Definition x86_dec {sz} (w: word sz) :=
     (w - 1)
     (wsigned w - 1)%Z.
 
-Definition x86_setcc (b:bool) : exec values := ok [:: Vword (wrepr U8 (Z.b2z b))].
+Definition x86_setcc (b:bool) : exec values := ok [:: Vword (wrepr W8 (Z.b2z b))].
 
 Definition x86_bt {sz} (x y: word sz) : exec values :=
   Let _  := check_size_8_64 sz in
@@ -889,11 +889,11 @@ Definition x86_bswap {sz} (v: word sz) : exec values :=
 (* ---------------------------------------------------------------- *)
 Definition x86_movd {sz} (v: word sz) : exec values :=
   Let _ := check_size_32_64 sz in
-  ok [:: Vword (zero_extend U128 v) ].
+  ok [:: Vword (zero_extend W128 v) ].
 
 (* ---------------------------------------------------------------- *)
 Definition x86_u128_binop sz (op: _ → _ → word sz) (v1 v2: word sz) : exec values :=
-  Let _ := check_size_128_256 sz in
+  Let _ := check_size_128_512 sz in
   ok [:: Vword (op v1 v2) ].
 
 Definition x86_vpand {sz} := x86_u128_binop (@wand sz).
@@ -929,7 +929,7 @@ Arguments x86_vpinsr : clear implicits.
 Definition x86_u128_shift sz' sz (op: word sz' → Z → word sz')
   (v: word sz) (c: u8) : exec values :=
   Let _ := check_size_16_64 sz' in
-  Let _ := check_size_128_256 sz in
+  Let _ := check_size_128_512 sz in
   ok [:: Vword (lift1_vec sz' (λ v, op v (wunsigned c)) sz v) ].
 
 Arguments x86_u128_shift : clear implicits.
@@ -941,7 +941,7 @@ Definition x86_vpsra (ve: velem) {sz} := x86_u128_shift ve sz (@wsar _).
 (* ---------------------------------------------------------------- *)
 Definition x86_u128_shift_variable ve sz op v1 v2 : exec values :=
   Let _ := check_size_32_64 ve in
-  Let _ := check_size_128_256 sz in
+  Let _ := check_size_128_512 sz in
   ok [:: Vword (lift2_vec ve (λ v1 v2, op v1 (wunsigned v2)) sz v1 v2) ].
 
 Arguments x86_u128_shift_variable : clear implicits.
@@ -951,7 +951,7 @@ Definition x86_vpsrlv ve {sz} := x86_u128_shift_variable ve sz (@wshr _).
 
 (* ---------------------------------------------------------------- *)
 Definition x86_vpsxldq sz op (v1: word sz) (v2: u8) :=
-  Let _ := check_size_128_256 sz in
+  Let _ := check_size_128_512 sz in
   ok [:: @Vword sz (op v1 v2) ].
 
 Definition x86_vpslldq {sz} := x86_vpsxldq (@wpslldq sz).
@@ -962,7 +962,7 @@ Definition x86_vpshufb {sz} := x86_u128_binop (@wpshufb sz).
 
 (* ---------------------------------------------------------------- *)
 Definition x86_vpshuf sz (op: word sz → Z → word sz) (v1: word sz) (v2: u8) : exec values :=
-  Let _ := check_size_128_256 sz in
+  Let _ := check_size_128_512 sz in
   ok [:: Vword (op v1 (wunsigned v2)) ].
 
 Arguments x86_vpshuf : clear implicits.
@@ -977,27 +977,27 @@ Definition x86_vpunpckl ve {sz} := x86_u128_binop (@wpunpckl sz ve).
 
 (* ---------------------------------------------------------------- *)
 Definition x86_vpblendd {sz} (v1 v2: word sz) (m: u8) : exec values :=
-  Let _ := check_size_128_256 sz in
+  Let _ := check_size_128_512 sz in
   ok [:: Vword (wpblendd v1 v2 m) ].
 
 (* ---------------------------------------------------------------- *)
 Definition x86_vpbroadcast ve sz (v: word ve) : exec values :=
-  Let _ := check_size_128_256 sz in
+  Let _ := check_size_128_512 sz in
   ok [:: Vword (wpbroadcast sz v) ].
 
 (* ---------------------------------------------------------------- *)
-Definition x86_vextracti128 (v: u256) (i: u8) : exec values :=
-  let r := if lsb i then wshr v U128 else v in
-  ok [:: Vword (zero_extend U128 r) ].
+Definition x86_vextracti128 (v: u512) (i: u8) : exec values :=
+  let r := if lsb i then wshr v W128 else v in
+  ok [:: Vword (zero_extend W128 r) ].
 
-Definition x86_vinserti128 (v1: u256) (v2: u128) (m: u8) : exec values :=
+Definition x86_vinserti128 (v1: u512) (v2: u128) (m: u8) : exec values :=
   ok [:: Vword (winserti128 v1 v2 m) ].
 
 (* ---------------------------------------------------------------- *)
-Definition x86_vperm2i128 (v1 v2: u256) (m: u8) : exec values :=
+Definition x86_vperm2i128 (v1 v2: u512) (m: u8) : exec values :=
   ok [:: Vword (wperm2i128 v1 v2 m) ].
 
-Definition x86_vpermq (v: u256) (m: u8) : exec values :=
+Definition x86_vpermq (v: u512) (m: u8) : exec values :=
   ok [:: Vword (wpermq v m) ].
 
 (* ---------------------------------------------------------------- *)
@@ -1011,15 +1011,15 @@ Definition is_word (sz: wsize) (v: value) : exec unit :=
 Lemma is_wordI sz v u :
   is_word sz v = ok u →
   subtype (vundef_type (sword sz)) (type_of_val v).
-Proof. case: v => // [ sz' w | [] // ] _; exact: wsize_le_U8. Qed.
+Proof. case: v => // [ sz' w | [] // ] _; exact: wsize_le_W8. Qed.
 
 (* ---------------------------------------------------------------- *)
 Notation app_b   o := (app_sopn [:: sbool] o).
 Notation app_w sz o := (app_sopn [:: sword sz] o).
 Notation app_ww sz o := (app_sopn [:: sword sz; sword sz] o).
-Notation app_w8 sz o := (app_sopn [:: sword sz; sword U8] o).
+Notation app_w8 sz o := (app_sopn [:: sword sz; sword W8] o).
 Notation app_www sz o := (app_sopn [:: sword sz; sword sz; sword sz] o).
-Notation app_ww8 sz o := (app_sopn [:: sword sz; sword sz; sword U8] o).
+Notation app_ww8 sz o := (app_sopn [:: sword sz; sword sz; sword W8] o).
 Notation app_wwb sz o := (app_sopn [:: sword sz; sword sz; sbool] o).
 Notation app_bww o := (app_sopn [:: sbool; sword; sword] o).
 Notation app_w4 sz o  := (app_sopn [:: sword sz; sword sz; sword sz; sword sz] o).
@@ -1038,7 +1038,7 @@ Definition exec_sopn (o:sopn) :  values -> exec values :=
   | Ox86_MOV sz => app_w sz (@x86_MOV sz)
   | Ox86_MOVSX sz sz' => app_w sz' (@x86_MOVSX sz sz')
   | Ox86_MOVZX sz sz' => app_w sz' (@x86_MOVZX sz sz')
-  | Ox86_MOVZX32 => app_w U32 (λ x : u32, ok [:: Vword (zero_extend U64 x) ])
+  | Ox86_MOVZX32 => app_w W32 (λ x : u32, ok [:: Vword (zero_extend W64 x) ])
   | Ox86_CMOVcc sz => (fun v => match v with
     | [:: v1; v2; v3] =>
       Let _ := check_size_16_64 sz in
@@ -1084,7 +1084,7 @@ Definition exec_sopn (o:sopn) :  values -> exec values :=
   | Ox86_BSWAP sz => app_w sz x86_bswap
   | Ox86_MOVD sz => app_w sz x86_movd
   | Ox86_VMOVDQU sz => app_sopn [:: sword sz ] (λ x,
-                                                Let _ := check_size_128_256 sz in
+                                                Let _ := check_size_128_512 sz in
                                                 ok [:: Vword x])
   | Ox86_VPAND sz => app_ww sz x86_vpand
   | Ox86_VPANDN sz => app_ww sz x86_vpandn
@@ -1094,7 +1094,7 @@ Definition exec_sopn (o:sopn) :  values -> exec values :=
   | Ox86_VPSUB ve sz => app_ww sz (x86_vpsub ve)
   | Ox86_VPMULL ve sz => app_ww sz (x86_vpmull ve)
   | Ox86_VPMULU sz => app_ww sz x86_vpmulu
-  | Ox86_VPEXTR ve => app_w8 U128 (x86_vpextr ve)
+  | Ox86_VPEXTR ve => app_w8 W128 (x86_vpextr ve)
   | Ox86_VPINSR ve => app_sopn [:: sword128 ; sword ve ; sword8 ] (x86_vpinsr ve)
   | Ox86_VPSLL ve sz => app_w8 sz (x86_vpsll ve)
   | Ox86_VPSRL ve sz => app_w8 sz (x86_vpsrl ve)
@@ -1111,11 +1111,11 @@ Definition exec_sopn (o:sopn) :  values -> exec values :=
   | Ox86_VPUNPCKL ve sz => app_ww sz (x86_vpunpckl ve)
   | Ox86_VPBLENDD sz => app_ww8 sz x86_vpblendd
   | Ox86_VPBROADCAST ve sz => app_w ve (x86_vpbroadcast sz)
-  | Ox86_VBROADCASTI128 => app_w U128 (x86_vpbroadcast U256)
-  | Ox86_VEXTRACTI128 => app_w8 U256 x86_vextracti128
-  | Ox86_VINSERTI128 => app_sopn [:: sword256 ; sword128 ; sword8 ] x86_vinserti128
-  | Ox86_VPERM2I128 => app_ww8 U256 x86_vperm2i128
-  | Ox86_VPERMQ => app_w8 U256 x86_vpermq
+  | Ox86_VBROADCASTI128 => app_w W128 (x86_vpbroadcast W512)
+  | Ox86_VEXTRACTI128 => app_w8 W512 x86_vextracti128
+  | Ox86_VINSERTI128 => app_sopn [:: sword512 ; sword128 ; sword8 ] x86_vinserti128
+  | Ox86_VPERM2I128 => app_ww8 W512 x86_vperm2i128
+  | Ox86_VPERMQ => app_w8 W512 x86_vpermq
   end.
 
 Ltac app_sopn_t := 
@@ -1142,7 +1142,7 @@ Ltac app_sopn_t :=
 Lemma sopn_toutP o vs vs' : exec_sopn o vs = ok vs' ->
   List.map type_of_val vs' = sopn_tout o.
 Proof.
-  rewrite /exec_sopn ;case: o => /=; app_sopn_t => //;
+  rewrite /exec_sopn; case: o => /=; app_sopn_t => //;
   try (by apply: rbindP => _ _; app_sopn_t).
   + by move=> ??????; case: ifP => ?; t_xrbindP => ?? <-.
   + by rewrite /x86_div;t_xrbindP => ??;case: ifP => // ? [<-].
@@ -1274,7 +1274,7 @@ Section SEM_IND.
   Definition sem_Ind_cons : Prop :=
     forall (s1 s2 s3 : estate) (i : instr) (c : cmd),
       sem_I s1 i s2 -> Pi s1 i s2 -> sem s2 c s3 -> Pc s2 c s3 -> Pc s1 (i :: c) s3.
-
+	
   Hypotheses
     (Hnil: sem_Ind_nil)
     (Hcons: sem_Ind_cons)

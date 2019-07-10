@@ -115,7 +115,7 @@ Definition MOVZX_desc sz sz' := make_instr_desc (MOVZX_gsc sz sz').
 
 Lemma MOVZX32_gsc :
   gen_sem_correct [:: TYreg; TYoprd ] Ox86_MOVZX32
-    [:: E U32 0 ] [:: E U32 1 ] [::] (λ d, MOV U32 (Reg_op d)).
+    [:: E W32 0 ] [:: E W32 1 ] [::] (λ d, MOV W32 (Reg_op d)).
 Proof.
 move => x y; split => // gd m m'.
 rewrite /low_sem_aux /= arg_of_oprdE /=.
@@ -132,7 +132,7 @@ Definition MOVZX32_desc := make_instr_desc MOVZX32_gsc.
 (* ----------------------------------------------------------------------------- *)
 Lemma MOVD_gsc sz :
   gen_sem_correct' [:: TYxreg ; TYoprd ] MSB_MERGE (Ox86_MOVD sz)
-                  [:: E U128 0 ] [:: E sz 1 ] [::] (MOVD sz).
+                  [:: E W128 0 ] [:: E sz 1 ] [::] (MOVD sz).
 Proof.
 move => x y; split => // gd m m'.
 rewrite /low_sem_aux /= arg_of_oprdE /= /sets_low /eval_MOVD /x86_movd.
@@ -285,9 +285,9 @@ Qed.
 Definition IMULt_desc sz := make_instr_desc (IMULt_gsc sz).
 
 Lemma IMULtimm_gsc sz :
-  gen_sem_correct [:: TYoprd ; TYoprd ; TYimm U32] (Ox86_IMULtimm sz)
-                   (implicit_flags ++ [:: E sz 0]) [:: E sz 1; E U32 2] [::]
-    (λ (x y : interp_ty TYoprd) (z : interp_ty (TYimm U32)), IMUL sz x (Some (y, Some z))).
+  gen_sem_correct [:: TYoprd ; TYoprd ; TYimm W32] (Ox86_IMULtimm sz)
+                   (implicit_flags ++ [:: E sz 0]) [:: E sz 1; E W32 2] [::]
+    (λ (x y : interp_ty TYoprd) (z : interp_ty (TYimm W32)), IMUL sz x (Some (y, Some z))).
 Proof.
   rewrite /= /low_sem_aux /= /eval_IMUL /x86_imult => x; split => // gd m m'.
   rewrite arg_of_oprdE /=.
@@ -440,7 +440,7 @@ Definition DEC_desc sz := make_instr_desc (DEC_gsc sz).
 (* ----------------------------------------------------------------------------- *)
 Lemma SETcc_gsc :
   gen_sem_correct [:: TYcondt; TYoprd] Ox86_SETcc
-     [:: E U8 1]
+     [:: E W8 1]
      [:: Eb 0] [::] SETcc.
 Proof.
 move => ct x; split => // gd m m'; rewrite /low_sem_aux /= /eval_SETcc /x86_setcc.
@@ -874,7 +874,7 @@ Definition SAR_desc sz := make_instr_desc (SAR_gsc sz).
 Lemma SHLD_gsc sz :
   gen_sem_correct [:: TYoprd; TYreg; TYireg] (Ox86_SHLD sz)
      (implicit_flags ++ [:: E sz 0])
-     [:: E sz 0; E sz 1; ADExplicit (Some U8) 2 (Some RCX)] [::] (SHLD sz).
+     [:: E sz 0; E sz 1; ADExplicit (Some W8) 2 (Some RCX)] [::] (SHLD sz).
 Proof.
 move => x y z; split => // gd m m'.
 rewrite /low_sem_aux /= !arg_of_oprdE /= /x86_shld /eval_SHLD.
@@ -920,7 +920,7 @@ Definition SHLD_desc sz := make_instr_desc (SHLD_gsc sz).
 Lemma SHRD_gsc sz :
   gen_sem_correct [:: TYoprd; TYreg; TYireg] (Ox86_SHRD sz)
      (implicit_flags ++ [:: E sz 0])
-     [:: E sz 0; E sz 1; ADExplicit (Some U8) 2 (Some RCX)] [::] (SHRD sz).
+     [:: E sz 0; E sz 1; ADExplicit (Some W8) 2 (Some RCX)] [::] (SHRD sz).
 Proof.
 move => x y z; split => // gd m m'.
 rewrite /low_sem_aux /= !arg_of_oprdE /= /x86_shrd /eval_SHRD.
@@ -966,7 +966,7 @@ Definition SHRD_desc sz := make_instr_desc (SHRD_gsc sz).
 Definition SET0 sz o : asm :=
   XOR
     (if o is Reg_op _
-     then cmp_min U32 sz
+     then cmp_min W32 sz
      else sz)
     o o.
 
@@ -976,7 +976,7 @@ Lemma Set0_gsc sz :
      [::] [::] (SET0 sz).
 Proof.
 move => x; split => // gd m m'; rewrite /low_sem_aux /= /eval_XOR.
-have ok_sz : ∀ u, check_size_8_64 sz = ok u → check_size_8_64 (if x is Reg_op _ then cmp_min U32 sz else sz) = ok tt.
+have ok_sz : ∀ u, check_size_8_64 sz = ok u → check_size_8_64 (if x is Reg_op _ then cmp_min W32 sz else sz) = ok tt.
 + by case: x => //; case: sz.
 case: x ok_sz => //= [ x | x ] ok_sz; t_xrbindP => vs _ /(ok_sz) {ok_sz} -> /= <-.
 - case => <- /=; rewrite wxor_xx /= /rflags_of_bwop /SF_of_word msb0 /=.
@@ -1019,7 +1019,7 @@ Proof.
 Qed.
 
 Lemma eval_low_rm128 gd s u m x y sz (v: word sz) :
-  check_size_128_256 s = ok u →
+  check_size_128_512 s = ok u →
   arg_of_rm128 (Some s) x = Some y →
   eval_low gd m y = ok (Vword v) →
   read_rm128 gd s x m = ok (zero_extend _ v).
@@ -1093,8 +1093,8 @@ Definition VPMULL_desc ve sz := make_instr_desc (VPMULL_gsc ve sz).
 
 (* ----------------------------------------------------------------------------- *)
 Lemma VPEXTR_gsc ve :
-  gen_sem_correct [:: TYoprd ; TYxreg ; TYimm U8 ] (Ox86_VPEXTR ve)
-      [:: E ve 0 ] [:: E U128 1 ; E U8 2 ] [::] (VPEXTR ve).
+  gen_sem_correct [:: TYoprd ; TYxreg ; TYimm W8 ] (Ox86_VPEXTR ve)
+      [:: E ve 0 ] [:: E W128 1 ; E W8 2 ] [::] (VPEXTR ve).
 Proof.
 move => x y z; split => // gd m m'.
 rewrite /low_sem_aux /= /x86_vpextr /eval_VPEXTR.
@@ -1112,9 +1112,9 @@ Definition VPEXTR_desc ve := make_instr_desc (VPEXTR_gsc ve).
 
 (* ----------------------------------------------------------------------------- *)
 Definition VPINSR_gsc ve :
-  gen_sem_correct [:: TYxreg ; TYxreg ; TYoprd ; TYimm U8 ]
+  gen_sem_correct [:: TYxreg ; TYxreg ; TYoprd ; TYimm W8 ]
     (Ox86_VPINSR ve)
-    [:: E U128 0 ] [:: E U128 1 ; E ve 2 ; E U8 3 ] [::]
+    [:: E W128 0 ] [:: E W128 1 ; E ve 2 ; E W8 3 ] [::]
     (VPINSR ve).
 Proof.
 move => d x y i; split => // gd m m'.
@@ -1132,8 +1132,8 @@ Lemma x86_rm128_shift_gsc ve sz op i sem :
   (∀ d x y, is_sopn (i sz d x y)) →
   (exec_sopn (op sz) = app_w8 sz (x86_u128_shift ve sz sem)) →
   (∀ d x y gd m, eval_instr_mem gd (i sz d x y) m = eval_rm128_shift gd MSB_CLEAR sz sem d x y m) →
-  gen_sem_correct [:: TYrm128 ; TYrm128 ; TYimm U8 ] (op sz)
-                  [:: E sz 0 ] [:: E sz 1 ; E U8 2 ] [::] (i sz).
+  gen_sem_correct [:: TYrm128 ; TYrm128 ; TYimm W8 ] (op sz)
+                  [:: E sz 0 ] [:: E sz 1 ; E W8 2 ] [::] (i sz).
 Proof.
 move => ok_sopn hsem lsem d x y; split => // gd m m'.
 rewrite /low_sem_aux /= lsem /eval_rm128_shift hsem /x86_u128_shift /=.
@@ -1166,7 +1166,7 @@ move => ok_sopn hsem lsem d x y; split => // gd m m'.
 rewrite /low_sem_aux /= lsem /eval_rm128_shift_variable hsem /x86_u128_shift_variable /=.
 case hy: arg_of_rm128 => [ y' | ] //=.
 t_xrbindP => ???? hy' <- <- /=.
-rewrite /truncate_word wsize_le_U256 /=; t_xrbindP => w /to_wordI [sz'] [w'] [hle ??].
+rewrite /truncate_word wsize_le_W512 /=; t_xrbindP => w /to_wordI [sz'] [w'] [hle ??].
 subst => _ -> /= ? ok_sz <- [<-].
 rewrite /eval_xmm_binop (eval_low_rm128 ok_sz hy hy').
 eexists; split; reflexivity.
@@ -1182,7 +1182,7 @@ Lemma x86_shift_double_quadword_gsc sz op i sem :
   (∀ d x y, is_sopn (i sz d x y)) →
   (exec_sopn (op sz) = app_w8 sz (x86_vpsxldq sem)) →
   (∀ d x y gd m, eval_instr_mem gd (i sz d x y) m = eval_shift_double_quadword sem d x y m) →
-  gen_sem_correct [:: TYxreg ; TYxreg ; TYimm U8 ] (op sz)
+  gen_sem_correct [:: TYxreg ; TYxreg ; TYimm W8 ] (op sz)
                   [:: E sz 0 ] [:: E sz 1 ; E sz 2 ] [::] (i sz).
 Proof.
 move => ok_sopn hsem lsem d x y; split => // gd m m'.
@@ -1208,7 +1208,7 @@ Proof.
 move => ok_sopn hsem lsem d x y; split => // gd m m'.
 rewrite /low_sem_aux /= lsem /eval_xmm_binop hsem /x86_u128_binop /=.
 case hy: (arg_of_rm128 _ y) => [ y' | ] //=.
-t_xrbindP => ???? h <- <- /=; rewrite /truncate_word wsize_le_U256 /=.
+t_xrbindP => ???? h <- <- /=; rewrite /truncate_word wsize_le_W512 /=.
 t_xrbindP => w /to_wordI [sz'] [w'] [hle ??].
 subst => ? ok_sz <- [<-].
 rewrite (eval_low_rm128 ok_sz hy h).
@@ -1226,8 +1226,8 @@ Lemma vpshuf_gsc sz op i sem :
   (∀ d x y, is_sopn (i sz d x y)) →
   (exec_sopn (op sz) = app_w8 sz (x86_vpshuf sz sem)) →
   (∀ d x y gd m, eval_instr_mem gd (i sz d x y) m = eval_vpshuf gd sem d x y m) →
-  gen_sem_correct [:: TYxreg ; TYrm128 ; TYimm U8 ]
-    (op sz) [:: E sz 0 ] [:: E sz 1 ; E U8 2 ] [::]
+  gen_sem_correct [:: TYxreg ; TYrm128 ; TYimm W8 ]
+    (op sz) [:: E sz 0 ] [:: E sz 1 ; E W8 2 ] [::]
     (i sz).
 Proof.
 move => ok_sopn hsem lsem x y z; split => // gd m m'.
@@ -1259,7 +1259,7 @@ Proof.
 move => ok_sopn hsem lsem x y z; split => // gd m m'.
 rewrite /low_sem_aux /= lsem /eval_vpunpck hsem /x86_u128_binop /=.
 case hz: arg_of_rm128 => [ z' | ] //=.
-t_xrbindP => ???? h <- <- /=; rewrite /truncate_word wsize_le_U256 /=.
+t_xrbindP => ???? h <- <- /=; rewrite /truncate_word wsize_le_W512 /=.
 t_xrbindP => w /to_wordI [sz'] [w'] [hle ??].
 subst => ? ok_sz <-.
 rewrite /sets_low => - [<-].
@@ -1274,9 +1274,9 @@ Definition VPUNPCKL_desc ve sz := make_instr_desc (vpunpck_gsc ve sz Ox86_VPUNPC
 
 (* ----------------------------------------------------------------------------- *)
 Lemma VPBLENDD_gsc sz :
-  gen_sem_correct [:: TYxreg ; TYxreg ; TYrm128 ; TYimm U8 ]
+  gen_sem_correct [:: TYxreg ; TYxreg ; TYrm128 ; TYimm W8 ]
     (Ox86_VPBLENDD sz)
-    [:: E sz 0 ] [:: E sz 1 ; E sz 2 ; E U8 3 ] [::]
+    [:: E sz 0 ] [:: E sz 1 ; E sz 2 ; E W8 3 ] [::]
     (VPBLENDD sz).
 Proof.
 move => x y z k; split => // gd m m'.
@@ -1315,7 +1315,7 @@ Definition VPBROADCAST_desc ve sz := make_instr_desc (VPBROADCAST_gsc ve sz).
 Lemma VBROADCASTI128_gsc :
   gen_sem_correct [:: TYxreg ; TYm128 ]
     Ox86_VBROADCASTI128
-    [:: E U256 0 ] [:: E U128 1 ] [::]
+    [:: E W512 0 ] [:: E W128 1 ] [::]
     VBROADCASTI128.
 Proof.
 move => x y; split => // gd m m'.
@@ -1331,9 +1331,9 @@ Definition VBROADCASTI128_desc := make_instr_desc VBROADCASTI128_gsc.
 
 (* ----------------------------------------------------------------------------- *)
 Lemma VEXTRACTI128_gsc :
-  gen_sem_correct [:: TYrm128 ; TYxreg ; TYimm U8 ]
+  gen_sem_correct [:: TYrm128 ; TYxreg ; TYimm W8 ]
     Ox86_VEXTRACTI128
-    [:: E U128 0 ] [:: E U256 1 ; E U8 2 ] [::]
+    [:: E W128 0 ] [:: E W512 1 ; E W8 2 ] [::]
     VEXTRACTI128.
 Proof.
 move => x y z; split => // gd m m'.
@@ -1350,13 +1350,13 @@ Definition VEXTRACTI128_desc := make_instr_desc VEXTRACTI128_gsc.
 
 (* ----------------------------------------------------------------------------- *)
 Lemma i128_terop_gsc sz op i sem :
-  (check_size_128_256 sz = ok tt) →
+  (check_size_128_512 sz = ok tt) →
   (∀ d x y n, is_sopn (i d x y n)) →
-  (exec_sopn op = app_sopn [:: sword256 ; sword sz ; sword8 ] (λ x y n, ok [:: Vword (sem x y n)])) →
+  (exec_sopn op = app_sopn [:: sword512 ; sword sz ; sword8 ] (λ x y n, ok [:: Vword (sem x y n)])) →
   (∀ d x y n gd m, eval_instr_mem gd (i d x y n) m = eval_i128_terop gd sem d x y n m) →
-  gen_sem_correct [:: TYxreg ; TYxreg ; TYrm128 ; TYimm U8 ]
+  gen_sem_correct [:: TYxreg ; TYxreg ; TYrm128 ; TYimm W8 ]
     op
-    [:: E U256 0 ] [:: E U256 1 ; E sz 2 ; E U8 3 ] [::]
+    [:: E W256 0 ] [:: E W256 1 ; E sz 2 ; E W8 3 ] [::]
     i.
 Proof.
 move => ok_sz ok_sopn hsem lsem x y z k; split => // gd m m'.
@@ -1373,20 +1373,20 @@ Qed.
 
 Arguments i128_terop_gsc : clear implicits.
 
-Definition VINSERTI128_desc := make_instr_desc (i128_terop_gsc U128 Ox86_VINSERTI128 VINSERTI128 winserti128 erefl (λ d x y n, erefl) erefl (λ d x y n gd m, erefl)).
-Definition VPERM2I128_desc := make_instr_desc (i128_terop_gsc U256 Ox86_VPERM2I128 VPERM2I128 wperm2i128 erefl (λ d x y n, erefl) erefl (λ d x y n gd m, erefl)).
+Definition VINSERTI128_desc := make_instr_desc (i128_terop_gsc W128 Ox86_VINSERTI128 VINSERTI128 winserti128 erefl (λ d x y n, erefl) erefl (λ d x y n gd m, erefl)).
+Definition VPERM2I128_desc := make_instr_desc (i128_terop_gsc W512 Ox86_VPERM2I128 VPERM2I128 wperm2i128 erefl (λ d x y n, erefl) erefl (λ d x y n gd m, erefl)).
 
 (* ----------------------------------------------------------------------------- *)
 Lemma VPERMQ_gsc :
-  gen_sem_correct [:: TYxreg ; TYrm128 ; TYimm U8 ]
-    Ox86_VPERMQ [:: E U256 0 ] [:: E U256 1 ; E U8 2 ] [::] VPERMQ.
+  gen_sem_correct [:: TYxreg ; TYrm128 ; TYimm W8 ]
+    Ox86_VPERMQ [:: E W512 0 ] [:: E W512 1 ; E W8 2 ] [::] VPERMQ.
 Proof.
 move => dst src imm; split => // gd m m'.
 rewrite /low_sem_aux /= /eval_VPERMQ /x86_vpermq /=.
 case hsrc: arg_of_rm128 => [ src' | ] //=.
 t_xrbindP => ??? h <-; t_xrbindP => w /to_wordI [sz'] [w'] [hle ??].
 subst => _ [<-] <- [<-].
-rewrite (eval_low_rm128 (erefl : check_size_128_256 U256 = ok tt) hsrc h) zero_extend_sign_extend // sign_extend_u.
+rewrite (eval_low_rm128 (erefl : check_size_128_512 W512 = ok tt) hsrc h) zero_extend_sign_extend // sign_extend_u.
 eexists; split; reflexivity.
 Qed.
 
@@ -1494,9 +1494,9 @@ Proof.
     by exists (Reg_ir a).
   + case => // s w i'; t_xrbindP => z h <-; eexists; split; last reflexivity; repeat f_equal.
     move: h; rewrite /check_immediate. case: eqP => // <- [<-] {z}.
-    case hsz: (w ≤ U64)%CMP.
+    case hsz: (w ≤ W64)%CMP.
     + by rewrite zero_extend_sign_extend // sign_extend_u.
-    have hsz' : (U64 ≤ w)%CMP.
+    have hsz' : (W64 ≤ w)%CMP.
     + by apply: cmp_nle_le; rewrite hsz.
     by rewrite !(sign_extend_truncate _ hsz') !(zero_extend_idem _ hsz') !zero_extend_u.
   + by case => // ? ? [<-]; eauto.

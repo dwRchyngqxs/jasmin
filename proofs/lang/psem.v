@@ -648,8 +648,7 @@ repeat match goal with
 | |- to_word ?sz ?v = ok _ → _ =>
   let k := fresh in case/to_wordI => ? [?] [k ->?]; rewrite /= k => {k}
 | |- _ → _ => intro
-end;
-trivial.
+end.
 Qed.
 
 Lemma to_arr_ok s n v t :
@@ -1418,7 +1417,7 @@ Lemma subtype_vundef_type_eq t1 t2:
 Proof. by case: t1;case: t2 => //= ???? /eqP. Qed.
 
 Lemma subtype_vundef_type t : subtype (vundef_type t) t.
-Proof. case: t => //=;apply wsize_le_U8. Qed.
+Proof. case: t => //=;apply wsize_le_W8. Qed.
 
 Lemma subtype_eq_vundef_type t t': subtype t t' -> vundef_type t = vundef_type t'.
 Proof.
@@ -1699,7 +1698,7 @@ case: t v => [||sz p|sz] [] //=.
   by case: CEDecStype.pos_dec.
 + by case => // ??;case:ifP => // /andP [] /eqP <- /eqP <-;eauto.
 case => // s _;eexists;split;last reflexivity.
-by apply wsize_le_U8.
+by apply wsize_le_W8.
 Qed.
 
 Lemma pof_val_type_of t v :

@@ -38,12 +38,13 @@ module F   = Format
 
 let pp_ws fmt =
   function
-  | T.U8 -> F.fprintf fmt "16"
-  | T.U16 -> F.fprintf fmt "16"
-  | T.U32 -> F.fprintf fmt "32"
-  | T.U64 -> F.fprintf fmt "64"
-  | T.U128 -> F.fprintf fmt "128"
-  | T.U256 -> F.fprintf fmt "256"
+  | T.W8 -> F.fprintf fmt "16"
+  | T.W16 -> F.fprintf fmt "16"
+  | T.W32 -> F.fprintf fmt "32"
+  | T.W64 -> F.fprintf fmt "64"
+  | T.W128 -> F.fprintf fmt "128"
+  | T.W256 -> F.fprintf fmt "256"
+  | T.W512 -> F.fprintf fmt "512"
 
 let pp_bty fmt = function
   | Bool  -> F.fprintf fmt "sbool"
@@ -67,8 +68,8 @@ let pp_ass_tag fmt = function
 
 let string_cmp_ty = function
   | E.Cmp_int    -> "i"
-  | E.Cmp_w (T.Unsigned, T.U64) -> "u"
-  | E.Cmp_w (T.Signed, T.U64) -> "s"
+  | E.Cmp_w (T.Unsigned, T.W64) -> "u"
+  | E.Cmp_w (T.Signed, T.W64) -> "s"
   | _ -> assert false
 
 let infix_sop2 = fun _ -> assert false 
@@ -146,7 +147,7 @@ let pp_op1 = function
   | E.Osignext _ -> assert false (* FIXME *)
   | E.Ozeroext _ -> assert false (* FIXME *)
   | E.Onot     -> "~~"
-  | E.Olnot U64 -> "~!"
+  | E.Olnot W64 -> "~!"
   | E.Olnot _   -> assert false
   | E.Oneg _ -> "~-" (* FIXME *)
 

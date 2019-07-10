@@ -376,9 +376,9 @@ End RegMap.
 
 (* -------------------------------------------------------------------- *)
 Module XRegMap.
-  Definition map := {ffun xmm_register -> u256 }.
+  Definition map := {ffun xmm_register -> u512 }.
 
-  Definition set (m : map) (x : xmm_register) (y : u256) : map :=
+  Definition set (m : map) (x : xmm_register) (y : u512) : map :=
     [ffun z => if (z == x) then y else m z].
 End XRegMap.
 
@@ -442,8 +442,8 @@ Definition word_extend_reg (r: register) sz (w: word sz) (m: x86_mem) :=
   merge_word (m.(xreg) r) w.
 
 Lemma word_extend_reg_id r sz (w: word sz) m :
-  (U32 ≤ sz)%CMP →
-  word_extend_reg r w m = zero_extend U64 w.
+  (W32 ≤ sz)%CMP →
+  word_extend_reg r w m = zero_extend W64 w.
 Proof.
 rewrite /word_extend_reg /merge_word.
 by case: sz w => //= w _; rewrite wand0 wxor0.
@@ -496,7 +496,7 @@ Definition mem_write_mem (l : pointer) sz (w : word sz) (s : x86_mem) :=
   |}.
 
 (* -------------------------------------------------------------------- *)
-Definition mem_write_xreg (r: xmm_register) (w: u256) (m: x86_mem) :=
+Definition mem_write_xreg (r: xmm_register) (w: u512) (m: x86_mem) :=
   {|
     xmem := m.(xmem);
     xreg := m.(xreg);
@@ -697,7 +697,7 @@ Definition read_rm128_nocheck (sz: wsize) (rm: rm128) (m: x86_mem) : exec (word 
   end.
 
 Definition read_rm128 (sz: wsize) (rm: rm128) (m: x86_mem) : exec (word sz) :=
-  Let _ := check_size_128_256 sz in
+  Let _ := check_size_128_512 sz in
   read_rm128_nocheck sz rm m.
 
 (* -------------------------------------------------------------------- *)
@@ -710,17 +710,17 @@ Scheme Equality for msb_flag.
 Definition msb_flag_eqMixin := comparableClass msb_flag_eq_dec.
 Canonical msb_flag_eqType := EqType msb_flag msb_flag_eqMixin.
 
-Definition update_u256 (f: msb_flag) (old: u256) (sz: wsize) (new: word sz) : u256 :=
+Definition update_u512 (f: msb_flag) (old: u512) (sz: wsize) (new: word sz) : u512 :=
   match f with
-  | MSB_CLEAR => zero_extend U256 new
+  | MSB_CLEAR => zero_extend W512 new
   | MSB_MERGE =>
-    let m : u256 := wshl (-1)%R (wsize_bits sz) in
-    wxor (wand old m) (zero_extend U256 new)
+    let m : u512 := wshl (-1)%R (wsize_bits sz) in
+    wxor (wand old m) (zero_extend W512 new)
   end.
 
 Definition mem_update_xreg f (r: xmm_register) sz (w: word sz) (m: x86_mem) : x86_mem :=
   let old := xxreg m r in
-  let w' := update_u256 f old w in
+  let w' := update_u512 f old w in
   mem_write_xreg r w' m.
 
 Definition write_rm128 (f: msb_flag) (sz: wsize) (rm: rm128) (w: word sz) (m: x86_mem) : x86_result :=
@@ -747,9 +747,9 @@ Definition eval_MOV sz o1 o2 s : x86_result :=
 Definition eval_MOVSX szo szi dst o s : x86_result :=
   Let _ :=
     match szi with
-    | U8 => check_size_16_64 szo
-    | U16 => check_size_32_64 szo
-    | U32 => assert (szo == U64) ErrType
+    | W8 => check_size_16_64 szo
+    | W16 => check_size_32_64 szo
+    | W32 => assert (szo == W64) ErrType
     | _ => type_error
     end in
   Let v := read_oprd szi o s in
@@ -759,8 +759,8 @@ Definition eval_MOVSX szo szi dst o s : x86_result :=
 Definition eval_MOVZX szo szi dst o s : x86_result :=
   Let _ :=
     match szi with
-    | U8 => check_size_16_64 szo
-    | U16 => check_size_32_64 szo
+    | W8 => check_size_16_64 szo
+    | W16 => check_size_32_64 szo
     | _ => type_error
     end in
   Let v := read_oprd szi o s in
@@ -952,7 +952,7 @@ Definition eval_DEC sz o s : x86_result :=
 (* -------------------------------------------------------------------- *)
 Definition eval_SETcc ct o s : x86_result :=
   Let b := eval_cond ct s.(xrf) in
-  @write_oprd o U8 (if b then 1%R else 0%R) s.
+  @write_oprd o W8 (if b then 1%R else 0%R) s.
 
 (* -------------------------------------------------------------------- *)
 Definition eval_BT sz o ir s : x86_result :=
@@ -1047,7 +1047,7 @@ Definition eval_NOT sz o s : x86_result :=
 Definition eval_ROR sz o ir s : x86_result :=
   Let _  := check_size_8_64 sz in
   Let v := read_oprd sz o s in
-  let i := wand (read_ireg U8 ir s) (x86_shift_mask sz) in
+  let i := wand (read_ireg W8 ir s) (x86_shift_mask sz) in
   if i == 0%R
   then write_oprd o v s
   else
@@ -1066,7 +1066,7 @@ Definition eval_ROR sz o ir s : x86_result :=
 Definition eval_ROL sz o ir s : x86_result :=
   Let _  := check_size_8_64 sz in
   Let v := read_oprd sz o s in
-  let i := wand (read_ireg U8 ir s) (x86_shift_mask sz) in
+  let i := wand (read_ireg W8 ir s) (x86_shift_mask sz) in
   if i == 0%R
   then write_oprd o v s
   else
@@ -1085,7 +1085,7 @@ Definition eval_ROL sz o ir s : x86_result :=
 Definition eval_SHL sz o ir s : x86_result :=
   Let _ := check_size_8_64 sz in
   Let v := read_oprd sz o s in
-  let i := wand (read_ireg U8 ir s) (x86_shift_mask sz) in
+  let i := wand (read_ireg W8 ir s) (x86_shift_mask sz) in
 
   if i == 0%R
   then write_oprd o v s
@@ -1100,7 +1100,7 @@ Definition eval_SHLD sz o1 r2 ir s : x86_result :=
   Let _  := check_size_16_64 sz in
   Let v1 := read_oprd sz o1 s in
   let v2 := zero_extend sz (s.(xreg) r2) in 
-  let i := wand (read_ireg U8 ir s) (x86_shift_mask sz) in (* FIXME: enforce ir is CL or immediate *)
+  let i := wand (read_ireg W8 ir s) (x86_shift_mask sz) in (* FIXME: enforce ir is CL or immediate *)
 
   if i == 0%R
   then write_oprd o1 v1 s
@@ -1116,7 +1116,7 @@ Definition eval_SHLD sz o1 r2 ir s : x86_result :=
 Definition eval_SHR sz o ir s : x86_result :=
   Let _ := check_size_8_64 sz in
   Let v := read_oprd sz o s in
-  let i := wand (read_ireg U8 ir s) (x86_shift_mask sz) in
+  let i := wand (read_ireg W8 ir s) (x86_shift_mask sz) in
 
   if i == 0%R
   then write_oprd o v s
@@ -1131,7 +1131,7 @@ Definition eval_SHRD sz o1 r2 ir s : x86_result :=
   Let _  := check_size_16_64 sz in
   Let v1 := read_oprd sz o1 s in
   let v2 := zero_extend sz (s.(xreg) r2) in
-  let i := wand (read_ireg U8 ir s) (x86_shift_mask sz) in (* FIXME: enforce ir is CL or immediate *)
+  let i := wand (read_ireg W8 ir s) (x86_shift_mask sz) in (* FIXME: enforce ir is CL or immediate *)
 
   if i == 0%R
   then write_oprd o1 v1 s
@@ -1151,7 +1151,7 @@ Definition eval_SAL sz o ir s : x86_result :=
 Definition eval_SAR sz o ir s : x86_result :=
   Let _ := check_size_8_64 sz in
   Let v := read_oprd sz o s in
-  let i := wand (read_ireg U8 ir s) (x86_shift_mask sz) in
+  let i := wand (read_ireg W8 ir s) (x86_shift_mask sz) in
 
   if i == 0%R
   then write_oprd o v s
@@ -1181,7 +1181,7 @@ Definition eval_Jcc lbl ct (s: x86_state) : x86_result_state :=
 Definition eval_MOVD sz (dst: xmm_register) (src: oprd) s : x86_result :=
   Let _ := check_size_32_64 sz in
   Let v := read_oprd sz src s in
-  ok (mem_update_xreg MSB_MERGE dst (zero_extend U128 v) s).
+  ok (mem_update_xreg MSB_MERGE dst (zero_extend W128 v) s).
 
 (* -------------------------------------------------------------------- *)
 Definition eval_VMOV sz (dst src: rm128) s : x86_result :=
@@ -1224,15 +1224,15 @@ Definition eval_VPANDN sz := eval_xmm_binop sz (@wandn _).
 
 (* -------------------------------------------------------------------- *)
 Definition eval_VPEXTR (ve: wsize) (dst: oprd) (src: xmm_register) (i: u8) s : x86_result :=
-  let v := zero_extend U128 (xxreg s src) in
+  let v := zero_extend W128 (xxreg s src) in
   let n := nth (0%R: word ve) (split_vec ve v) (Z.to_nat (wunsigned i)) in
   if dst is Reg_op r
-  then ok (mem_write_reg r (zero_extend U64 n) s)
+  then ok (mem_write_reg r (zero_extend W64 n) s)
   else write_oprd dst n s.
 
 (* -------------------------------------------------------------------- *)
 Definition eval_VPINSR (ve: velem) (dst src1: xmm_register) (src2: oprd) (i: u8) s : x86_result :=
-  let v1 := zero_extend U128 (xxreg s src1) in
+  let v1 := zero_extend W128 (xxreg s src1) in
   Let v2 := read_oprd ve src2 s in
   let r := wpinsr v1 v2 i in
   ok (mem_update_xreg MSB_CLEAR dst r s).
@@ -1262,7 +1262,7 @@ Definition eval_VPSRLV ve sz := eval_rm128_shift_variable ve sz (@wshr _).
 
 (* -------------------------------------------------------------------- *)
 Definition eval_shift_double_quadword sz op (dst src: xmm_register) (n: u8) s : x86_result :=
-  Let _ := check_size_128_256 sz in
+  Let _ := check_size_128_512 sz in
   let x := zero_extend sz (xxreg s src) in
   let r : word sz := op x n in
   ok (mem_update_xreg MSB_CLEAR dst r s).
@@ -1292,13 +1292,13 @@ Definition eval_VPBLENDD sz (dst: xmm_register) (src1: xmm_register) (src2: rm12
 
 (* -------------------------------------------------------------------- *)
 Definition eval_VPBROADCAST ve sz dst src s : x86_result :=
-  Let _ := check_size_128_256 sz in
+  Let _ := check_size_128_512 sz in
   Let v := read_rm128_nocheck ve src s in
   let r := wpbroadcast sz v in
   ok (mem_update_xreg MSB_CLEAR dst r s).
 
 Definition eval_VBROADCASTI128 dst (src: m128) s : x86_result :=
-  eval_VPBROADCAST U128 U256 dst src s.
+  eval_VPBROADCAST W128 W512 dst src s.
 
 (* -------------------------------------------------------------------- *)
 Definition eval_vpunpck (sz: wsize) (op: word sz → word sz → word sz)
@@ -1316,11 +1316,11 @@ Definition eval_VPUNPCKL ve sz := eval_vpunpck sz (wpunpckl ve).
 (* -------------------------------------------------------------------- *)
 Definition eval_VEXTRACTI128 (dst: rm128) (src: xmm_register) (i: u8) s : x86_result :=
   let v := xxreg s src in
-  let r := if lsb i then wshr v U128 else v in
-  write_rm128 MSB_CLEAR dst (zero_extend U128 r) s.
+  let r := if lsb i then wshr v W128 else v in
+  write_rm128 MSB_CLEAR dst (zero_extend W128 r) s.
 
 (* -------------------------------------------------------------------- *)
-Definition eval_i128_terop sz (op: u256 → word sz → u8 → u256)
+Definition eval_i128_terop sz (op: u512 → word sz → u8 → u512)
     dst src1 src2 i s : x86_result :=
   let v1 := xxreg s src1 in
   Let v2 := read_rm128 sz src2 s in
@@ -1332,7 +1332,7 @@ Definition eval_VPERM2I128 := eval_i128_terop wperm2i128.
 
 (* -------------------------------------------------------------------- *)
 Definition eval_VPERMQ (dst: xmm_register) (src: rm128) (i: u8) s : x86_result :=
-  Let v := read_rm128 U256 src s in
+  Let v := read_rm128 W512 src s in
   let r := wpermq v i in
   ok (mem_update_xreg MSB_CLEAR dst r s).
 

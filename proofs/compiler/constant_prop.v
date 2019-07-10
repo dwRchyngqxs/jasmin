@@ -292,7 +292,7 @@ Definition slor := sbitw Olor (@wor).
 Definition slxor := sbitw Olxor (@wxor).
 
 Definition sbitw8 i (z: ∀ sz, word sz → u8 → word sz) sz e1 e2 :=
-  match is_wconst sz e1, is_wconst U8 e2 with
+  match is_wconst sz e1, is_wconst W8 e2 with
   | Some n1, Some n2 => wconst (z sz n1 n2)
   | _, _ => Papp2 (i sz) e1 e2
   end.
@@ -455,7 +455,7 @@ Fixpoint const_prop_rvs (m:cpm) (rvs:lvals) : cpm * lvals :=
   end.
 
 Definition wsize_of_stype (ty: stype) : wsize :=
-  if ty is sword sz then sz else U64.
+  if ty is sword sz then sz else W64.
 
 Definition add_cpm (m:cpm) (rv:lval) tag ty e :=
   if rv is Lvar x then

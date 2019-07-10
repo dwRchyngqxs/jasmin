@@ -107,11 +107,11 @@ Coercion nat_of_pelem (pe: pelem) : nat :=
   | PE1 => 1
   | PE2 => 2
   | PE4 => 4
-  | PE8 => nat_of_wsize U8
-  | PE16 => nat_of_wsize U16
-  | PE32 => nat_of_wsize U32
-  | PE64 => nat_of_wsize U64
-  | PE128 => nat_of_wsize U128
+  | PE8 => int_of_wsize W8
+  | PE16 => int_of_wsize W16
+  | PE32 => int_of_wsize W32
+  | PE64 => int_of_wsize W64
+  | PE128 => int_of_wsize W128
   end.
 
 Definition word := fun sz =>
@@ -237,17 +237,18 @@ Qed.
 
 End wsigned_range.
 
-Notation u8   := (word U8).
-Notation u16  := (word U16).
-Notation u32  := (word U32).
-Notation u64  := (word U64).
-Notation u128 := (word U128).
-Notation u256 := (word U256).
+Notation u8   := (word W8).
+Notation u16  := (word W16).
+Notation u32  := (word W32).
+Notation u64  := (word W64).
+Notation u128 := (word W128).
+Notation u256 := (word W256).
+Notation u512 := (word W512).
 
 Definition x86_shift_mask (s:wsize) : u8 :=
   match s with 
-  | U8 | U16 | U32 => wrepr U8 31
-  | U64 | U128 | U256 => wrepr U8 (wsize_size_minus_1 s)
+  | W8 | W16 | W32 => wrepr W8 31
+  | W64 | W128 | W256 | W512 => wrepr W8 (wsize_size_minus_1 s)
   end%Z.
 
 Definition wbit_n sz (w:word sz) (n:nat) : bool := 
@@ -691,12 +692,12 @@ Definition check_scale (s:Z) :=
 (* -------------------------------------------------------------------*)
 Definition mask_word (sz:wsize) : u64 := 
   match sz with
-  | U8 | U16 => wshl (-1)%R (wsize_bits sz)
+  | W8 | W16 => wshl (-1)%R (wsize_bits sz)
   | _ => 0%R
   end.
 
 Definition merge_word (wr: u64) (sz:wsize) (w:word sz) := 
-   wxor (wand (mask_word sz) wr) (zero_extend U64 w).
+   wxor (wand (mask_word sz) wr) (zero_extend W64 w).
 
 (* -------------------------------------------------------------------*)
 Definition split_vec {sz} ve (w : word sz) :=
@@ -707,16 +708,16 @@ Definition make_vec {sz} sz' (s : seq (word sz)) :=
   wrepr sz' (wcat_r s).
 
 Lemma make_vec_split_vec sz w :
-  make_vec sz (split_vec U8 w) = w.
+  make_vec sz (split_vec W8 w) = w.
 Proof.
-have mod0: sz %% U8 = 0%nat by case: {+}sz.
-have sz_even: sz = (U8 * (sz %/ U8))%nat :> nat.
-+ by rewrite [LHS](divn_eq _ U8) mod0 addn0 mulnC.
+have mod0: sz %% W8 = 0%nat by case: {+}sz.
+have sz_even: sz = (W8 * (sz %/ W8))%nat :> nat.
++ by rewrite [LHS](divn_eq _ W8) mod0 addn0 mulnC.
 rewrite /make_vec /split_vec mod0 addn0; set s := map _ _.
 pose wt := (ecast ws (ws.-word) sz_even w).
-pose t  := [tuple subword (i * U8) U8 wt | i < sz %/ U8].
+pose t  := [tuple subword (i * W8) W8 wt | i < sz %/ W8].
 have eq_st: wcat_r s = wcat t.
-+ rewrite {}/s {}/t /=; pose F i := subword (i * U8) U8 wt.
++ rewrite {}/s {}/t /=; pose F i := subword (i * W8) W8 wt.
   rewrite (map_comp F val) val_enum_ord {}/F.
   congr wcat_r; apply/eq_map => i; apply/eqP/eq_from_wbit.
   move=> j; rewrite !subwordE; congr (CoqWord.word.wbit (t2w _) _).
@@ -747,16 +748,16 @@ Arguments lift2_vec : clear implicits.
 
 (* -------------------------------------------------------------------*)
 Definition wbswap sz (w: word sz) : word sz :=
-  make_vec sz (rev (split_vec U8 w)).
+  make_vec sz (rev (split_vec W8 w)).
 
 (* -------------------------------------------------------------------*)
 Definition halve_list A : seq A → seq A :=
   fix loop m := if m is a :: _ :: m' then a :: loop m' else m.
 
 Definition wpmulu sz (x y: word sz) : word sz :=
-  let xs := halve_list (split_vec U32 x) in
-  let ys := halve_list (split_vec U32 y) in
-  let f (a b: u32) : u64 := wrepr U64 (wunsigned a * wunsigned b) in
+  let xs := halve_list (split_vec W32 x) in
+  let ys := halve_list (split_vec W32 y) in
+  let f (a b: u32) : u64 := wrepr W64 (wunsigned a * wunsigned b) in
   make_vec sz (map2 f xs ys).
 
 (* -------------------------------------------------------------------*)
@@ -776,54 +777,54 @@ Definition wpshufd1 (s : u128) (o : u8) (i : nat) :=
   subword 0 32 (wshr s (32 * urepr (subword (2 * i) 2 o))).
 
 Definition wpshufd_128 (s : u128) (o : Z) : u128 :=
-  let o := wrepr U8 o in
+  let o := wrepr W8 o in
   let d := [seq wpshufd1 s o i | i <- iota 0 4] in
-  wrepr U128 (wcat_r d).
+  wrepr W128 (wcat_r d).
 
 Definition wpshufd_256 (s : u256) (o : Z) : u256 :=
-  make_vec U256 (map (λ w, wpshufd_128 w o) (split_vec U128 s)).
+  make_vec W256 (map (λ w, wpshufd_128 w o) (split_vec W128 s)).
 
 Definition wpshufd sz : word sz → Z → word sz :=
   match sz with
-  | U128 => wpshufd_128
-  | U256 => wpshufd_256
+  | W128 => wpshufd_128
+  | W256 => wpshufd_256
   | _ => λ w _, w end.
 
 (* -------------------------------------------------------------------*)
 
 Definition wpshufl_u64 (w:u64) (z:Z) : u64 := 
-  let v := split_vec U16 w in
-  let j := split_vec 2 (wrepr U8 z) in
-  make_vec U64 (map (λ n, v`_(Z.to_nat (urepr n)))%R j).
+  let v := split_vec W16 w in
+  let j := split_vec 2 (wrepr W8 z) in
+  make_vec W64 (map (λ n, v`_(Z.to_nat (urepr n)))%R j).
 
 Definition wpshufl_u128 (w:u128) (z:Z) := 
   match split_vec 64 w with
-  | [::h;l] => make_vec U128 [::(h:u64); wpshufl_u64 l z]
+  | [::h;l] => make_vec W128 [::(h:u64); wpshufl_u64 l z]
   | _       => w
   end.
 
 Definition wpshufh_u128 (w:u128) (z:Z) := 
   match split_vec 64 w with
-  | [::h;l] => make_vec U128 [::wpshufl_u64 h z; (l:u64)]
+  | [::h;l] => make_vec W128 [::wpshufl_u64 h z; (l:u64)]
   | _       => w
   end.
 
 Definition wpshufl_u256 (s:u256) (z:Z) := 
-  make_vec U256 (map (λ w, wpshufl_u128 w z) (split_vec U128 s)).
+  make_vec W256 (map (λ w, wpshufl_u128 w z) (split_vec W128 s)).
 
 Definition wpshufh_u256 (s:u256) (z:Z) := 
-  make_vec U256 (map (λ w, wpshufh_u128 w z) (split_vec U128 s)).
+  make_vec W256 (map (λ w, wpshufh_u128 w z) (split_vec W128 s)).
 
 Definition wpshuflw sz : word sz → Z → word sz :=
   match sz with
-  | U128 => wpshufl_u128
-  | U256 => wpshufl_u256
+  | W128 => wpshufl_u128
+  | W256 => wpshufl_u256
   | _ => λ w _, w end.
 
 Definition wpshufhw sz : word sz → Z → word sz :=
   match sz with
-  | U128 => wpshufh_u128
-  | U256 => wpshufh_u256
+  | W128 => wpshufh_u128
+  | W256 => wpshufh_u256
   | _ => λ w _, w end.
 
 (* -------------------------------------------------------------------*)
@@ -864,31 +865,31 @@ Definition interleave_gen (get:u128 -> u64) (ve:velem) (src1 src2: u128) :=
   let ve : nat :=  wsize_of_velem ve in
   let l1 := split_vec ve (get src1) in
   let l2 := split_vec ve (get src2) in
-  make_vec U128 (interleave l1 l2).
+  make_vec W128 (interleave l1 l2).
 
 Definition wpunpckl_128 := interleave_gen (subword 0 64).
 
 Definition wpunpckl_256 ve (src1 src2 : u256) := 
-  make_vec U256 
-    (map2 (wpunpckl_128 ve) (split_vec U128 src1) (split_vec U128 src2)).
+  make_vec W256 
+    (map2 (wpunpckl_128 ve) (split_vec W128 src1) (split_vec W128 src2)).
 
 Definition wpunpckh_128 := interleave_gen (subword 64 64).
 
 Definition wpunpckh_256 ve (src1 src2 : u256) := 
-  make_vec U256 
-    (map2 (wpunpckh_128 ve) (split_vec U128 src1) (split_vec U128 src2)).
+  make_vec W256 
+    (map2 (wpunpckh_128 ve) (split_vec W128 src1) (split_vec W128 src2)).
 
 Definition wpunpckl (sz:wsize) : velem -> word sz -> word sz -> word sz := 
   match sz with
-  | U128 => wpunpckl_128
-  | U256 => wpunpckl_256
+  | W128 => wpunpckl_128
+  | W256 => wpunpckl_256
   | _    => fun ve w1 w2 => w1
   end.
 
 Definition wpunpckh (sz:wsize) : velem -> word sz -> word sz -> word sz := 
   match sz with
-  | U128 => wpunpckh_128
-  | U256 => wpunpckh_256
+  | W128 => wpunpckh_128
+  | W256 => wpunpckh_256
   | _    => fun ve w1 w2 => w1
   end.
 
@@ -907,17 +908,17 @@ End UPDATE_AT.
 Definition wpinsr ve (v: u128) (w: word ve) (i: u8) : u128 :=
   let v := split_vec ve v in
   let i := Z.to_nat (wunsigned i) in
-  make_vec U128 (update_at w v i).
+  make_vec W128 (update_at w v i).
 
 (* -------------------------------------------------------------------*)
-Definition winserti128 (v: u256) (w: u128) (i: u8) : u256 :=
-  let v := split_vec U128 v in
-  make_vec U256 (if lsb i then [:: v`_0 ; w ] else [:: w ; v`_1 ])%R.
+Definition winserti128 (v: u512) (w: u128) (i: u8) : u512 :=
+  let v := split_vec W128 v in
+  make_vec W512 (if lsb i then [:: v`_0 ; w ] else [:: w ; v`_1 ])%R.
 
 (* -------------------------------------------------------------------*)
 Definition wpblendd sz (w1 w2: word sz) (m: u8) : word sz :=
-  let v1 := split_vec U32 w1 in
-  let v2 := split_vec U32 w2 in
+  let v1 := split_vec W32 w1 in
+  let v2 := split_vec W32 w2 in
   let b := split_vec 1 m in
   let r := map3 (λ b v1 v2, if b == 1%R then v2 else v1) b v1 v2 in
   make_vec sz r.
@@ -928,28 +929,28 @@ Definition wpbroadcast ve sz (w: word ve) : word sz :=
   make_vec sz r.
 
 (* -------------------------------------------------------------------*)
-Definition wperm2i128 (w1 w2: u256) (i: u8) : u256 :=
+Definition wperm2i128 (w1 w2: u512) (i: u8) : u512 :=
   let choose (n: nat) :=
       match urepr (subword n 2 i) with
-      | 0 => subword 0 U128 w1
-      | 1 => subword U128 U128 w1
-      | 2 => subword 0 U128 w2
-      | _ => subword U128 U128 w2
+      | 0 => subword 0 W128 w1
+      | 1 => subword W128 W128 w1
+      | 2 => subword 0 W128 w2
+      | _ => subword W128 W128 w2
       end in
   let lo := if wbit_n i 3 then 0%R else choose 0%nat in
   let hi := if wbit_n i 7 then 0%R else choose 4%nat in
-  make_vec U256 [:: lo ; hi ]. 
+  make_vec W512 [:: lo ; hi ]. 
 
 (* -------------------------------------------------------------------*)
-Definition wpermq (w: u256) (i: u8) : u256 :=
-  let v := split_vec U64 w in
+Definition wpermq (w: u512) (i: u8) : u512 :=
+  let v := split_vec W64 w in
   let j := split_vec 2 i in
-  make_vec U256 (map (λ n, v`_(Z.to_nat (urepr n)))%R j).
+  make_vec W512 (map (λ n, v`_(Z.to_nat (urepr n)))%R j).
 
 (* -------------------------------------------------------------------*)
 Definition wpsxldq op sz (w: word sz) (i: u8) : word sz :=
   let n : Z := (Z.min 16 (wunsigned i)) * 8 in
-  lift1_vec U128 (λ w, op w n) sz w.
+  lift1_vec W128 (λ w, op w n) sz w.
 
 Definition wpslldq := wpsxldq (@wshl _).
 Definition wpsrldq := wpsxldq (@wshr _).

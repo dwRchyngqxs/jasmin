@@ -131,7 +131,7 @@ Definition add := Papp2 (Oadd (Op_w Uptr)).
 
 Definition cast_word e := 
   match e with
-  | Papp1 (Oint_of_word U64) e1 => e1
+  | Papp1 (Oint_of_word W64) e1 => e1
   | _  => cast_ptr e
   end.
 

@@ -510,10 +510,10 @@ Proof.
   by case.
 Qed.
 
-Lemma sbitw8P i (z: ∀ sz, word sz → word U8 → word sz) sz e1 e2 :
+Lemma sbitw8P i (z: ∀ sz, word sz → word W8 → word sz) sz e1 e2 :
   (∀ sz1 (w1: word sz1) sz2 (w2: word sz2) v,
       sem_sop2 (i sz) (Vword w1) (Vword w2) = ok v →
-      v = Vword (z sz (zero_extend sz w1) (zero_extend U8 w2))) →
+      v = Vword (z sz (zero_extend sz w1) (zero_extend W8 w2))) →
   Papp2 (i sz) e1 e2 =E sbitw8 i z sz e1 e2.
 Proof.
 rewrite /sbitw8 => h.

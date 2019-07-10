@@ -208,7 +208,7 @@ let pp_opn =
   | Ox86_VPMULL (ve, sz) -> v ve sz "#x86_VPMULL"
   | Ox86_VPMULU w -> f w "#x86_VPMULU"
   | Ox86_VPEXTR w -> f w "#x86_VPEXTR"
-  | Ox86_VPINSR ve -> v ve U128 "#x86_VPINSR"
+  | Ox86_VPINSR ve -> v ve W128 "#x86_VPINSR"
   | Ox86_VPSLL (ve, sz) -> v ve sz "#x86_VPSLL"
   | Ox86_VPSRL (ve, sz) -> v ve sz "#x86_VPSRL"
   | Ox86_VPSRA (ve, sz) -> v ve sz "#x86_VPSRA"

@@ -60,12 +60,13 @@ type 'ty gexpr =
 
 type 'ty gexprs = 'ty gexpr list
 
-let u8   = Bty (U U8)
-let u16  = Bty (U U16)
-let u32  = Bty (U U32)
-let u64  = Bty (U U64)
-let u128 = Bty (U U128)
-let u256 = Bty (U U256)
+let u8   = Bty (U W8)
+let u16  = Bty (U W16)
+let u32  = Bty (U W32)
+let u64  = Bty (U W64)
+let u128 = Bty (U W128)
+let u256 = Bty (U W256)
+let u512 = Bty (U W512)
 let tbool = Bty Bool
 let tint  = Bty Int
 
@@ -314,20 +315,22 @@ let locals fc =
 (* Functions on types                                                   *)
 
 let int_of_ws = function
-  | U8   -> 8
-  | U16  -> 16
-  | U32  -> 32
-  | U64  -> 64
-  | U128 -> 128
-  | U256 -> 256
+  | W8   -> 8
+  | W16  -> 16
+  | W32  -> 32
+  | W64  -> 64
+  | W128 -> 128
+  | W256 -> 256
+  | W512 -> 512
 
 let size_of_ws = function
-  | U8   -> 1
-  | U16  -> 2
-  | U32  -> 4
-  | U64  -> 8
-  | U128 -> 16
-  | U256 -> 32
+  | W8   -> 1
+  | W16  -> 2
+  | W32  -> 4
+  | W64  -> 8
+  | W128 -> 16
+  | W256 -> 32
+  | W512 -> 64
 
 let int_of_pe =
   function
@@ -378,7 +381,7 @@ let ( ** ) e1 e2 =
 let cnst i = Pconst i
 let icnst i = cnst (B.of_int i)
 
-let cast64 e = Papp1 (Oword_of_int U64, e)
+let cast64 e = Papp1 (Oword_of_int W64, e)
 
 (* -------------------------------------------------------------------- *)
 (* Functions over lvalue                                                *)

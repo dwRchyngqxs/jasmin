@@ -245,12 +245,13 @@ end
 (* -------------------------------------------------------------------- *)
 let tt_ws (ws : S.wsize) =
   match ws with
-  | `W8   -> T.U8
-  | `W16  -> T.U16
-  | `W32  -> T.U32
-  | `W64  -> T.U64
-  | `W128 -> T.U128
-  | `W256 -> T.U256
+  | `W8   -> T.W8
+  | `W16  -> T.W16
+  | `W32  -> T.W32
+  | `W64  -> T.W64
+  | `W128 -> T.W128
+  | `W256 -> T.W256
+  | `W512 -> T.W512
 
 (* -------------------------------------------------------------------- *)
 let tt_sto (sto : S.pstorage) : P.v_kind =
@@ -385,15 +386,20 @@ let max_ty ty1 ty2 =
 let tt_vsize_op loc op (vs:S.vsize) (ve:S.vesize)  = 
   match vs, ve with
   (* 128 *)
-  | `V16, `W8  -> T.VE8 , T.U128
-  | `V8 , `W16 -> T.VE16, T.U128  
-  | `V4 , `W32 -> T.VE32, T.U128
-  | `V2 , `W64 -> T.VE64, T.U128
+  | `V16, `W8  -> T.VE8 , T.W128
+  | `V8 , `W16 -> T.VE16, T.W128  
+  | `V4 , `W32 -> T.VE32, T.W128
+  | `V2 , `W64 -> T.VE64, T.W128
   (* 256 *) 
-  | `V32, `W8  -> T.VE8 , T.U256
-  | `V16, `W16 -> T.VE16, T.U256  
-  | `V8 , `W32 -> T.VE32, T.U256
-  | `V4 , `W64 -> T.VE64, T.U256
+  | `V32, `W8  -> T.VE8 , T.W256
+  | `V16, `W16 -> T.VE16, T.W256  
+  | `V8 , `W32 -> T.VE32, T.W256
+  | `V4 , `W64 -> T.VE64, T.W256
+  (* 512 *)
+  | `V64, `W8 -> T.VE8, T.W512
+  | `V32, `W16 -> T.VE16, T.W512
+  | `V16, `W32 -> T.VE32, T.W512
+  | `V8, `W64 -> T.VE64, T.W512
   | _   ,  _   -> rs_tyerror ~loc (InvalidOperator op)
 
 let op_info_dfl exn ty s (intok, (minws, maxws)) = 
@@ -451,8 +457,8 @@ type 'o op_info = {
     opi_vcmp : (T.wsize * T.wsize) option;
   }
 
-let cmp_8_64 = (T.U8, T.U64)
-let cmp_8_256 = (T.U8, T.U256)
+let cmp_8_64 = (T.W8, T.W64)
+let cmp_8_512 = (T.W8, T.W256)
 
 let mk_cmp_kind eop vop = function
   | OpKE c        -> eop c
@@ -460,7 +466,7 @@ let mk_cmp_kind eop vop = function
 
 let mk_cmp_info eop vop = {
     opi_op   = mk_cmp_kind eop vop;
-    opi_wcmp = true, cmp_8_256;
+    opi_wcmp = true, cmp_8_512;
     opi_vcmp = Some cmp_8_64;
   }
 
@@ -470,7 +476,7 @@ let mk_op_info eop vop = mk_cmp_info (mk_op_of_c eop) vop
 
 let mk_cmp_info_nvec eop = {
     opi_op   = mk_cmp_kind eop (fun _ _ _ -> assert false);
-    opi_wcmp = true, cmp_8_256;
+    opi_wcmp = true, cmp_8_512;
     opi_vcmp = None;
   }
 
@@ -482,7 +488,7 @@ let mk_logic_info eop =
     | OpKE (Cmp_w(_,ws)) -> eop ws
     | OpKV (_s,_ve,ws)   -> eop ws in
   { opi_op = mk;
-    opi_wcmp = false, cmp_8_256;
+    opi_wcmp = false, cmp_8_512;
     opi_vcmp = Some (cmp_8_64); }
 
 (* -------------------------------------------------------------------- *)
@@ -520,7 +526,7 @@ let shr_info =
     | OpKV (s,ve,ws)   -> 
       if s = T.Unsigned then E.Ovlsr(ve,ws) else E.Ovasr(ve,ws) in
   { opi_op   = mk;
-    opi_wcmp = false, cmp_8_256;
+    opi_wcmp = false, cmp_8_512;
     opi_vcmp = Some cmp_8_64;
   }
    
@@ -530,7 +536,7 @@ let shl_info =
     | OpKE (Cmp_w(_s,ws)) -> E.Olsl ws
     | OpKV (_s,ve,ws)     -> E.Ovlsl(ve,ws) in
   { opi_op   = mk;
-    opi_wcmp = false, cmp_8_256;
+    opi_wcmp = false, cmp_8_512;
     opi_vcmp = Some cmp_8_64;
   } 
 
@@ -539,7 +545,7 @@ let mk_test_info eop2 =
     | OpKE k          -> eop2 k
     | OpKV (s,_ve,ws) -> eop2 (E.Cmp_w(s,ws)) in
   { opi_op = mk;
-    opi_wcmp = true, cmp_8_256;
+    opi_wcmp = true, cmp_8_512;
     opi_vcmp = Some (cmp_8_64); }
 
 let eq_info  = mk_test_info (fun c -> E.Oeq (op_kind_of_cmp c))
@@ -585,7 +591,7 @@ let op1_of_pop1 exn ty (op: S.peop1) =
       if c <> None then raise exn
       else E.Onot
     else
-      op1_of_ty exn op c  (max_ty ty P.u256 |> oget ~exn) lnot_info 
+      op1_of_ty exn op c  (max_ty ty P.u512 |> oget ~exn) lnot_info 
 
   | `Neg c -> op1_of_ty exn op c ty neg_info
 
@@ -668,12 +674,13 @@ let tt_op1 (loc1, (e1, ety1)) { L.pl_desc = pop; L.pl_loc = loc } =
 (* -------------------------------------------------------------------- *)
 let wsize_of_bits ~loc =
   function
-  | 8 -> T.U8
-  | 16 -> T.U16
-  | 32 -> T.U32
-  | 64 -> T.U64
-  | 128 -> T.U128
-  | 256 -> T.U256
+  | 8 -> T.W8
+  | 16 -> T.W16
+  | 32 -> T.W32
+  | 64 -> T.W64
+  | 128 -> T.W128
+  | 256 -> T.W256
+  | 512 -> T.W512
   | n -> rs_tyerror ~loc (PackWrongWS n)
 
 let pelem_of_bits ~loc =
@@ -717,7 +724,7 @@ let rec tt_expr ?(mode=`AllVar) (env : Env.env) pe =
     let x = tt_var mode env x in
     check_ty_u64 ~loc:xlc x.P.v_ty;
     let e = tt_expr_cast64 ~mode env po in
-    let ct = ct |> omap_dfl tt_ws T.U64 in
+    let ct = ct |> omap_dfl tt_ws T.W64 in
     P.Pload (ct, L.mk_loc xlc x, e), P.Bty (P.U ct)
 
   | S.PEGet ({ L.pl_loc = xlc } as x, pi) ->
@@ -859,7 +866,7 @@ let tt_lvalue (env : Env.env) { L.pl_desc = pl; L.pl_loc = loc; } =
     let x = tt_var `AllVar env x in
     check_ty_u64 ~loc:xlc x.P.v_ty;
     let e = tt_expr_cast64 ~mode:`AllVar env po in
-    let ct = ct |> omap_dfl tt_ws T.U64 in
+    let ct = ct |> omap_dfl tt_ws T.W64 in
     loc, (fun _ -> P.Lmem (ct, L.mk_loc xlc x, e)), Some (P.Bty (P.U ct))
 
 (* -------------------------------------------------------------------- *)
@@ -888,68 +895,68 @@ type prim_constructor =
 
 let prim_string =
   let open Expr in
-  [ "mulu", PrimP (T.U64, fun sz -> Omulu sz);
-    "adc", PrimP (T.U64, fun sz -> Oaddcarry sz);
-    "sbb", PrimP (T.U64, fun sz -> Osubcarry sz);
-    "set0", PrimP (T.U64, fun sz -> Oset0 sz);
-    "x86_MOV", PrimP (T.U64, fun sz -> Ox86_MOV sz);
-    "x86_CMOVcc", PrimP (T.U64, fun sz -> Ox86_CMOVcc sz);
-    "x86_ADD", PrimP (T.U64, fun sz -> Ox86_ADD sz);
-    "x86_SUB", PrimP (T.U64, fun sz -> Ox86_SUB sz);
-    "x86_MUL", PrimP (T.U64, fun sz -> Ox86_MUL sz);
-    "x86_IMUL", PrimP (T.U64, fun sz -> Ox86_IMUL sz);
-    "x86_IMULt", PrimP (T.U64, fun sz -> Ox86_IMULt sz);
-    "x86_IMULtimm", PrimP (T.U64, fun sz -> Ox86_IMULtimm sz);
-    "x86_DIV", PrimP (T.U64, fun sz -> Ox86_DIV sz);
-    "x86_IDIV", PrimP (T.U64, fun sz -> Ox86_IDIV sz);
-    "x86_ADC", PrimP (T.U64, fun sz -> Ox86_ADC sz);
-    "x86_SBB", PrimP (T.U64, fun sz -> Ox86_SBB sz);
-    "x86_INC", PrimP (T.U64, fun sz -> Ox86_INC sz);
-    "x86_DEC", PrimP (T.U64, fun sz -> Ox86_DEC sz);
+  [ "mulu", PrimP (T.W64, fun sz -> Omulu sz);
+    "adc", PrimP (T.W64, fun sz -> Oaddcarry sz);
+    "sbb", PrimP (T.W64, fun sz -> Osubcarry sz);
+    "set0", PrimP (T.W64, fun sz -> Oset0 sz);
+    "x86_MOV", PrimP (T.W64, fun sz -> Ox86_MOV sz);
+    "x86_CMOVcc", PrimP (T.W64, fun sz -> Ox86_CMOVcc sz);
+    "x86_ADD", PrimP (T.W64, fun sz -> Ox86_ADD sz);
+    "x86_SUB", PrimP (T.W64, fun sz -> Ox86_SUB sz);
+    "x86_MUL", PrimP (T.W64, fun sz -> Ox86_MUL sz);
+    "x86_IMUL", PrimP (T.W64, fun sz -> Ox86_IMUL sz);
+    "x86_IMULt", PrimP (T.W64, fun sz -> Ox86_IMULt sz);
+    "x86_IMULtimm", PrimP (T.W64, fun sz -> Ox86_IMULtimm sz);
+    "x86_DIV", PrimP (T.W64, fun sz -> Ox86_DIV sz);
+    "x86_IDIV", PrimP (T.W64, fun sz -> Ox86_IDIV sz);
+    "x86_ADC", PrimP (T.W64, fun sz -> Ox86_ADC sz);
+    "x86_SBB", PrimP (T.W64, fun sz -> Ox86_SBB sz);
+    "x86_INC", PrimP (T.W64, fun sz -> Ox86_INC sz);
+    "x86_DEC", PrimP (T.W64, fun sz -> Ox86_DEC sz);
     "x86_SETcc" , PrimM Ox86_SETcc;
-    "x86_BT", PrimP (T.U64, fun sz -> Ox86_BT sz);
-    "x86_LEA", PrimP (T.U64, fun sz -> Ox86_LEA sz);
-    "x86_TEST", PrimP (T.U64, fun sz -> Ox86_TEST sz);
-    "x86_CMP", PrimP (T.U64, fun sz -> Ox86_CMP sz);
-    "x86_AND", PrimP (T.U64, fun sz -> Ox86_AND sz);
-    "x86_ANDN", PrimP (T.U64, fun sz -> Ox86_ANDN sz);
-    "x86_OR", PrimP (T.U64, fun sz -> Ox86_OR sz);
-    "x86_XOR", PrimP (T.U64, fun sz -> Ox86_XOR sz);
-    "x86_NOT", PrimP (T.U64, fun sz -> Ox86_NOT sz);
-    "x86_ROL", PrimP (T.U64, fun sz -> Ox86_ROL sz);
-    "x86_ROR", PrimP (T.U64, fun sz -> Ox86_ROR sz);
-    "x86_SHL", PrimP (T.U64, fun sz -> Ox86_SHL sz);
-    "x86_SHR", PrimP (T.U64, fun sz -> Ox86_SHR sz);
-    "x86_SAR", PrimP (T.U64, fun sz -> Ox86_SAR sz);
-    "x86_SHLD", PrimP (T.U64, fun sz -> Ox86_SHLD sz);
-    "x86_SHRD", PrimP (T.U64, fun sz -> Ox86_SHRD sz);
-    "x86_BSWAP", PrimP (T.U64, fun sz -> Ox86_BSWAP sz);
-    "x86_MOVD", PrimP (T.U64, fun sz -> Ox86_MOVD sz);
-    "x86_VMOVDQU", PrimP (T.U128, fun sz -> Ox86_VMOVDQU sz);
-    "x86_VPAND", PrimP (T.U128, fun sz -> Ox86_VPAND sz);
-    "x86_VPANDN", PrimP (T.U128, fun sz -> Ox86_VPANDN sz);
-    "x86_VPOR", PrimP (T.U128, fun sz -> Ox86_VPOR sz);
-    "x86_VPXOR", PrimP (T.U128, fun sz -> Ox86_VPXOR sz);
+    "x86_BT", PrimP (T.W64, fun sz -> Ox86_BT sz);
+    "x86_LEA", PrimP (T.W64, fun sz -> Ox86_LEA sz);
+    "x86_TEST", PrimP (T.W64, fun sz -> Ox86_TEST sz);
+    "x86_CMP", PrimP (T.W64, fun sz -> Ox86_CMP sz);
+    "x86_AND", PrimP (T.W64, fun sz -> Ox86_AND sz);
+    "x86_ANDN", PrimP (T.W64, fun sz -> Ox86_ANDN sz);
+    "x86_OR", PrimP (T.W64, fun sz -> Ox86_OR sz);
+    "x86_XOR", PrimP (T.W64, fun sz -> Ox86_XOR sz);
+    "x86_NOT", PrimP (T.W64, fun sz -> Ox86_NOT sz);
+    "x86_ROL", PrimP (T.W64, fun sz -> Ox86_ROL sz);
+    "x86_ROR", PrimP (T.W64, fun sz -> Ox86_ROR sz);
+    "x86_SHL", PrimP (T.W64, fun sz -> Ox86_SHL sz);
+    "x86_SHR", PrimP (T.W64, fun sz -> Ox86_SHR sz);
+    "x86_SAR", PrimP (T.W64, fun sz -> Ox86_SAR sz);
+    "x86_SHLD", PrimP (T.W64, fun sz -> Ox86_SHLD sz);
+    "x86_SHRD", PrimP (T.W64, fun sz -> Ox86_SHRD sz);
+    "x86_BSWAP", PrimP (T.W64, fun sz -> Ox86_BSWAP sz);
+    "x86_MOVD", PrimP (T.W64, fun sz -> Ox86_MOVD sz);
+    "x86_VMOVDQU", PrimP (T.W128, fun sz -> Ox86_VMOVDQU sz);
+    "x86_VPAND", PrimP (T.W128, fun sz -> Ox86_VPAND sz);
+    "x86_VPANDN", PrimP (T.W128, fun sz -> Ox86_VPANDN sz);
+    "x86_VPOR", PrimP (T.W128, fun sz -> Ox86_VPOR sz);
+    "x86_VPXOR", PrimP (T.W128, fun sz -> Ox86_VPXOR sz);
     "x86_VPADD", PrimV (fun ve sz -> Ox86_VPADD (ve, sz));
     "x86_VPSUB", PrimV (fun ve sz -> Ox86_VPSUB (ve, sz));
     "x86_VPMULL", PrimV (fun ve sz -> Ox86_VPMULL (ve, sz));
-    "x86_VPMULU", PrimP (T.U128, fun sz -> Ox86_VPMULU sz);
-    "x86_VPEXTR", PrimP (T.U64, fun sz -> Ox86_VPEXTR sz);
+    "x86_VPMULU", PrimP (T.W128, fun sz -> Ox86_VPMULU sz);
+    "x86_VPEXTR", PrimP (T.W64, fun sz -> Ox86_VPEXTR sz);
     "x86_VPINSR", PrimV (fun ve _ -> Ox86_VPINSR ve);
     "x86_VPSLL", PrimV (fun ve sz -> Ox86_VPSLL (ve, sz));
     "x86_VPSRL", PrimV (fun ve sz -> Ox86_VPSRL (ve, sz));
     "x86_VPSRA", PrimV (fun ve sz -> Ox86_VPSRA (ve, sz));
     "x86_VPSLLV", PrimV (fun ve sz -> Ox86_VPSLLV (ve, sz));
     "x86_VPSRLV", PrimV (fun ve sz -> Ox86_VPSRLV (ve, sz));
-    "x86_VPSLLDQ", PrimP (T.U128, fun sz -> Ox86_VPSLLDQ sz);
-    "x86_VPSRLDQ", PrimP (T.U128, fun sz -> Ox86_VPSRLDQ sz);
-    "x86_VPSHUFB", PrimP (T.U128, fun sz -> Ox86_VPSHUFB sz);
-    "x86_VPSHUFHW", PrimP (T.U128, fun sz -> Ox86_VPSHUFHW sz);
-    "x86_VPSHUFLW", PrimP (T.U128, fun sz -> Ox86_VPSHUFLW sz);
-    "x86_VPSHUFD", PrimP (T.U128, fun sz -> Ox86_VPSHUFD sz);
+    "x86_VPSLLDQ", PrimP (T.W128, fun sz -> Ox86_VPSLLDQ sz);
+    "x86_VPSRLDQ", PrimP (T.W128, fun sz -> Ox86_VPSRLDQ sz);
+    "x86_VPSHUFB", PrimP (T.W128, fun sz -> Ox86_VPSHUFB sz);
+    "x86_VPSHUFHW", PrimP (T.W128, fun sz -> Ox86_VPSHUFHW sz);
+    "x86_VPSHUFLW", PrimP (T.W128, fun sz -> Ox86_VPSHUFLW sz);
+    "x86_VPSHUFD", PrimP (T.W128, fun sz -> Ox86_VPSHUFD sz);
     "x86_VPUNPCKH", PrimV (fun ve sz -> Ox86_VPUNPCKH (ve, sz));
     "x86_VPUNPCKL", PrimV (fun ve sz -> Ox86_VPUNPCKL (ve, sz));
-    "x86_VPBLENDD", PrimP (T.U128, fun sz -> Ox86_VPBLENDD sz);
+    "x86_VPBLENDD", PrimP (T.W128, fun sz -> Ox86_VPBLENDD sz);
     "x86_VPBROADCAST_2u128", PrimM Ox86_VBROADCASTI128;
     "x86_VPBROADCAST", PrimV (fun ve sz -> Ox86_VPBROADCAST (ve, sz));
     "x86_VEXTRACTI128", PrimM Ox86_VEXTRACTI128;
@@ -966,20 +973,25 @@ type size_annotation =
 let extract_size str : string * size_annotation =
   let get_size =
     function
-    | "8" -> SAw T.U8
-    | "16" -> SAw T.U16
-    | "32" -> SAw T.U32
-    | "64" -> SAw T.U64
-    | "128" -> SAw T.U128
-    | "256" -> SAw T.U256
-    | "16u8" -> SAv (T.VE8, T.U128)
-    | "8u16" -> SAv (T.VE16, T.U128)
-    | "4u32" -> SAv (T.VE32, T.U128)
-    | "2u64" -> SAv (T.VE64, T.U128)
-    | "32u8" -> SAv (T.VE8, T.U256)
-    | "16u16" -> SAv (T.VE16, T.U256)
-    | "8u32" -> SAv (T.VE32, T.U256)
-    | "4u64" -> SAv (T.VE64, T.U256)
+    | "8" -> SAw T.W8
+    | "16" -> SAw T.W16
+    | "32" -> SAw T.W32
+    | "64" -> SAw T.W64
+    | "128" -> SAw T.W128
+    | "256" -> SAw T.W256
+    | "512" -> SAw T.W512
+    | "16u8" -> SAv (T.VE8, T.W128)
+    | "8u16" -> SAv (T.VE16, T.W128)
+    | "4u32" -> SAv (T.VE32, T.W128)
+    | "2u64" -> SAv (T.VE64, T.W128)
+    | "32u8" -> SAv (T.VE8, T.W256)
+    | "16u16" -> SAv (T.VE16, T.W256)
+    | "8u32" -> SAv (T.VE32, T.W256)
+    | "4u64" -> SAv (T.VE64, T.W256)
+    | "64u8" -> SAv (T.VE8, T.W512)
+    | "32u16" -> SAv (T.VE16, T.W512)
+    | "16u32" -> SAv (T.VE32, T.W512)
+    | "8u64" -> SAv (T.VE64, T.W512)
     | _ -> SA
   in
   match List.rev (String.split_on_char '_' str) with
@@ -1013,6 +1025,7 @@ let prim_of_op exn loc o =
       | `W64 -> 64
       | `W128 -> 128
       | `W256 -> 256
+      | `W512 -> 512
         )
   in
   let p =

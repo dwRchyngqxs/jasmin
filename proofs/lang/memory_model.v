@@ -37,7 +37,7 @@ Unset Printing Implicit Defensive.
 (* ** Memory
  * -------------------------------------------------------------------- *)
 
-Notation Uptr := U64 (only parsing).
+Notation Uptr := W64 (only parsing).
 Notation pointer := (word Uptr) (only parsing).
 
 Definition no_overflow (p: pointer) (sz: Z) : bool :=

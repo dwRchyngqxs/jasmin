@@ -99,7 +99,7 @@ let init_use fs =
 
 (* ------------------------------------------------------------------- *)
 let add64 x e = 
-  (Type.Coq_sword Type.U64, Papp2 (E.Oadd ( E.Op_w Type.U64), Pvar x, e))
+  (Type.Coq_sword Type.W64, Papp2 (E.Oadd ( E.Op_w Type.W64), Pvar x, e))
 
 type leakage = 
   | LK_MemAccess of expr list

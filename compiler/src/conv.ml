@@ -39,11 +39,11 @@ let bi_of_nat n =
 let pos_of_int i = pos_of_bi (B.of_int i)
 let int_of_pos p = B.to_int (bi_of_pos p)
 
-let int64_of_bi bi = Word0.wrepr T.U64 (z_of_bi bi)
-let bi_of_int64 z  = bi_of_z (Word0.wsigned T.U64 z)
-let bi_of_int32 z  = bi_of_z (Word0.wsigned T.U32 z)
-let bi_of_int16 z  = bi_of_z (Word0.wsigned T.U16 z)
-let bi_of_int8 z  = bi_of_z (Word0.wsigned T.U8 z)
+let int64_of_bi bi = Word0.wrepr T.W64 (z_of_bi bi)
+let bi_of_int64 z  = bi_of_z (Word0.wsigned T.W64 z)
+let bi_of_int32 z  = bi_of_z (Word0.wsigned T.W32 z)
+let bi_of_int16 z  = bi_of_z (Word0.wsigned T.W16 z)
+let bi_of_int8 z  = bi_of_z (Word0.wsigned T.W8 z)
 
 (* ------------------------------------------------------------------------ *)
 

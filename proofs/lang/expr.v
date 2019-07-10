@@ -342,7 +342,7 @@ Definition sopn_tout (o:sopn) :  list stype :=
   | Ox86_ADC sz | Ox86_SBB sz     => b5w_ty sz
   | Ox86_NEG sz                   => b5w_ty sz
   | Ox86_INC sz | Ox86_DEC sz     => b4w_ty sz
-  | Ox86_SETcc                    => w_ty U8
+  | Ox86_SETcc                    => w_ty W8
   | Ox86_BT sz                    => b_ty 
   | Ox86_LEA sz                   => w_ty sz
   | Ox86_TEST sz | Ox86_CMP sz    => b5_ty
@@ -369,7 +369,7 @@ Definition sopn_tout (o:sopn) :  list stype :=
   | Ox86_VPERM2I128
   | Ox86_VPERMQ
   | Ox86_VINSERTI128
-    => [:: sword256 ]
+    => [:: sword512 ]
   | Ox86_VPEXTR ve => [:: sword ve ]
   end.
 
@@ -440,10 +440,10 @@ Definition sopn_tin (o: sopn) : list stype :=
     => [:: sword sz; sword8 ]
   | Ox86_VPBROADCAST ve _ => [:: sword ve ]
   | Ox86_VBROADCASTI128 => [:: sword128 ]
-  | Ox86_VINSERTI128 => [:: sword256 ; sword128 ; sword8 ]
-  | Ox86_VPERM2I128 => [:: sword256 ; sword256 ; sword8 ]
+  | Ox86_VINSERTI128 => [:: sword512 ; sword128 ; sword8 ]
+  | Ox86_VPERM2I128 => [:: sword512 ; sword512 ; sword8 ]
   | Ox86_VEXTRACTI128
-  | Ox86_VPERMQ => [:: sword256 ; sword8 ]
+  | Ox86_VPERMQ => [:: sword512 ; sword8 ]
   end.
 
 (* Type of unany operators: input, output *)

@@ -19,6 +19,7 @@
     "u64"   , T_U64  ;
     "u128"  , T_U128 ;
     "u256"  , T_U256 ;
+    "u512"  , T_U512 ;
 
     "bool"  , T_BOOL ;
     "int"   , T_INT  ;
@@ -65,6 +66,7 @@
   | "64" -> `W64
   | "128" -> `W128
   | "256" -> `W256
+  | "512" -> `W512
   | _ -> assert false
 
   let mksizesign sw s = size_of_string sw, sign_of_char s
@@ -87,6 +89,7 @@
     | "8"  -> `V8
     | "16" -> `V16 
     | "32" -> `V32
+    | "64" -> `V64
     | _    ->  assert false 
  
   let mkvsizesign r s g = mk_vsize r, sign_of_char s, mk_gensize g
@@ -104,10 +107,10 @@ let letter   = (lower | upper)
 let idletter = letter | '_'
 let ident    = idletter (idletter | digit)*
 
-let size = "8" | "16" | "32" | "64" | "128" | "256"
+let size = "8" | "16" | "32" | "64" | "128" | "256" | "512"
 let signletter = ['s' 'u']
 let gensize = "1" | "2" | "4" | "8" | "16" | "32" | "64" | "128" 
-let vsize   = "2" | "4" | "8" | "16" | "32" 
+let vsize   = "2" | "4" | "8" | "16" | "32" | "64"
 
 
 (* -------------------------------------------------------------------- *)

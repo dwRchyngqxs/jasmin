@@ -60,7 +60,7 @@ Corollary xgetreg ii x r v s xs w :
   lom_eqv s xs →
   reg_of_var ii x = ok r →
   get_var s.(evm) x = ok v →
-  to_word U64 v = ok w →
+  to_word W64 v = ok w →
   xreg xs r = w.
 Proof.
   move => eqm hx hv hw; move: (xgetreg_ex eqm hx hv) => /value_uincl_word -/(_ _ _ hw) [].

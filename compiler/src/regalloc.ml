@@ -307,39 +307,39 @@ let conflicting_registers (i: int) (cnf: conflicts) (a: allocation) : var option
 module X64 =
 struct
 
-  let rax = V.mk "RAX" Reg (Bty (U U64)) L._dummy
-  let rbx = V.mk "RBX" Reg (Bty (U U64)) L._dummy
-  let rcx = V.mk "RCX" Reg (Bty (U U64)) L._dummy
-  let rdx = V.mk "RDX" Reg (Bty (U U64)) L._dummy
-  let rsp = V.mk "RSP" Reg (Bty (U U64)) L._dummy
-  let rbp = V.mk "RBP" Reg (Bty (U U64)) L._dummy
-  let rsi = V.mk "RSI" Reg (Bty (U U64)) L._dummy
-  let rdi = V.mk "RDI" Reg (Bty (U U64)) L._dummy
-  let r8 = V.mk "R8" Reg (Bty (U U64)) L._dummy
-  let r9 = V.mk "R9" Reg (Bty (U U64)) L._dummy
-  let r10 = V.mk "R10" Reg (Bty (U U64)) L._dummy
-  let r11 = V.mk "R11" Reg (Bty (U U64)) L._dummy
-  let r12 = V.mk "R12" Reg (Bty (U U64)) L._dummy
-  let r13 = V.mk "R13" Reg (Bty (U U64)) L._dummy
-  let r14 = V.mk "R14" Reg (Bty (U U64)) L._dummy
-  let r15 = V.mk "R15" Reg (Bty (U U64)) L._dummy
+  let rax = V.mk "RAX" Reg (Bty (U W64)) L._dummy
+  let rbx = V.mk "RBX" Reg (Bty (U W64)) L._dummy
+  let rcx = V.mk "RCX" Reg (Bty (U W64)) L._dummy
+  let rdx = V.mk "RDX" Reg (Bty (U W64)) L._dummy
+  let rsp = V.mk "RSP" Reg (Bty (U W64)) L._dummy
+  let rbp = V.mk "RBP" Reg (Bty (U W64)) L._dummy
+  let rsi = V.mk "RSI" Reg (Bty (U W64)) L._dummy
+  let rdi = V.mk "RDI" Reg (Bty (U W64)) L._dummy
+  let r8 = V.mk "R8" Reg (Bty (U W64)) L._dummy
+  let r9 = V.mk "R9" Reg (Bty (U W64)) L._dummy
+  let r10 = V.mk "R10" Reg (Bty (U W64)) L._dummy
+  let r11 = V.mk "R11" Reg (Bty (U W64)) L._dummy
+  let r12 = V.mk "R12" Reg (Bty (U W64)) L._dummy
+  let r13 = V.mk "R13" Reg (Bty (U W64)) L._dummy
+  let r14 = V.mk "R14" Reg (Bty (U W64)) L._dummy
+  let r15 = V.mk "R15" Reg (Bty (U W64)) L._dummy
 
-  let xmm0 = V.mk "XMM0" Reg (Bty (U U256)) L._dummy
-  let xmm1 = V.mk "XMM1" Reg (Bty (U U256)) L._dummy
-  let xmm2 = V.mk "XMM2" Reg (Bty (U U256)) L._dummy
-  let xmm3 = V.mk "XMM3" Reg (Bty (U U256)) L._dummy
-  let xmm4 = V.mk "XMM4" Reg (Bty (U U256)) L._dummy
-  let xmm5 = V.mk "XMM5" Reg (Bty (U U256)) L._dummy
-  let xmm6 = V.mk "XMM6" Reg (Bty (U U256)) L._dummy
-  let xmm7 = V.mk "XMM7" Reg (Bty (U U256)) L._dummy
-  let xmm8 = V.mk "XMM8" Reg (Bty (U U256)) L._dummy
-  let xmm9 = V.mk "XMM9" Reg (Bty (U U256)) L._dummy
-  let xmm10 = V.mk "XMM10" Reg (Bty (U U256)) L._dummy
-  let xmm11 = V.mk "XMM11" Reg (Bty (U U256)) L._dummy
-  let xmm12 = V.mk "XMM12" Reg (Bty (U U256)) L._dummy
-  let xmm13 = V.mk "XMM13" Reg (Bty (U U256)) L._dummy
-  let xmm14 = V.mk "XMM14" Reg (Bty (U U256)) L._dummy
-  let xmm15 = V.mk "XMM15" Reg (Bty (U U256)) L._dummy
+  let xmm0 = V.mk "XMM0" Reg (Bty (U W512)) L._dummy
+  let xmm1 = V.mk "XMM1" Reg (Bty (U W512)) L._dummy
+  let xmm2 = V.mk "XMM2" Reg (Bty (U W512)) L._dummy
+  let xmm3 = V.mk "XMM3" Reg (Bty (U W512)) L._dummy
+  let xmm4 = V.mk "XMM4" Reg (Bty (U W512)) L._dummy
+  let xmm5 = V.mk "XMM5" Reg (Bty (U W512)) L._dummy
+  let xmm6 = V.mk "XMM6" Reg (Bty (U W512)) L._dummy
+  let xmm7 = V.mk "XMM7" Reg (Bty (U W512)) L._dummy
+  let xmm8 = V.mk "XMM8" Reg (Bty (U W512)) L._dummy
+  let xmm9 = V.mk "XMM9" Reg (Bty (U W512)) L._dummy
+  let xmm10 = V.mk "XMM10" Reg (Bty (U W512)) L._dummy
+  let xmm11 = V.mk "XMM11" Reg (Bty (U W512)) L._dummy
+  let xmm12 = V.mk "XMM12" Reg (Bty (U W512)) L._dummy
+  let xmm13 = V.mk "XMM13" Reg (Bty (U W512)) L._dummy
+  let xmm14 = V.mk "XMM14" Reg (Bty (U W512)) L._dummy
+  let xmm15 = V.mk "XMM15" Reg (Bty (U W512)) L._dummy
 
   let allocatable = [
       rax; rcx; rdx;
@@ -427,8 +427,8 @@ type kind = Word | Vector | Unknown of ty
 
 let kind_of_type =
   function
-  | Bty (U (U8 | U16 | U32 | U64)) -> Word
-  | Bty (U (U128 | U256)) -> Vector
+  | Bty (U (W8 | W16 | W32 | W64)) -> Word
+  | Bty (U (W128 | W256 | W512)) -> Vector
   | ty -> Unknown ty
 
 let allocate_forced_registers translate_var (vars: int Hv.t) (cnf: conflicts)

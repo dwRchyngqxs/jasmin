@@ -38,21 +38,23 @@ Unset Printing Implicit Defensive.
  * -------------------------------------------------------------------- *)
 
 Variant wsize :=
-  | U8 
-  | U16
-  | U32 
-  | U64
-  | U128
-  | U256.
+  | W8
+  | W16
+  | W32
+  | W64
+  | W128
+  | W256
+  | W512.
 
 Definition int_of_wsize (sz: wsize) : nat :=
   match sz with
-  | U8 => 8
-  | U16 => 16
-  | U32 => 32
-  | U64 => 64
-  | U128 => 128
-  | U256 => 256
+  | W8 => 8
+  | W16 => 16
+  | W32 => 32
+  | W64 => 64
+  | W128 => 128
+  | W256 => 256
+  | W512 => 512
   end.
 
 Variant stype : Set :=
@@ -70,10 +72,10 @@ Variant velem := VE8 | VE16 | VE32 | VE64.
 
 Coercion wsize_of_velem (ve: velem) : wsize :=
   match ve with
-  | VE8 => U8
-  | VE16 => U16
-  | VE32 => U32
-  | VE64 => U64
+  | VE8 => W8
+  | VE16 => W16
+  | VE32 => W32
+  | VE64 => W64
   end.
 
 Definition nat_of_velem (ve: velem) : nat :=
@@ -99,12 +101,13 @@ Definition string_of_velem (ve: velem) : string :=
   "VE" ++ NilEmpty.string_of_int (Nat.to_int (nat_of_velem ve)).
 
 (* -------------------------------------------------------------------- *)
-Notation sword8   := (sword U8).
-Notation sword16  := (sword U16).
-Notation sword32  := (sword U32).
-Notation sword64  := (sword U64).
-Notation sword128 := (sword U128).
-Notation sword256 := (sword U256).
+Notation sword8   := (sword W8).
+Notation sword16  := (sword W16).
+Notation sword32  := (sword W32).
+Notation sword64  := (sword W64).
+Notation sword128 := (sword W128).
+Notation sword256 := (sword W256).
+Notation sword512 := (sword W512).
 
 (* -------------------------------------------------------------------- *)
 Scheme Equality for wsize. 
@@ -120,7 +123,7 @@ Definition wsize_eqMixin     := Equality.Mixin wsize_axiom.
 Canonical  wsize_eqType      := Eval hnf in EqType wsize wsize_eqMixin.
 
 Definition wsizes :=
-  [:: U8 ; U16 ; U32 ; U64 ; U128 ; U256 ].
+  [:: W8 ; W16 ; W32 ; W64 ; W128 ; W256 ; W512 ].
 
 Lemma wsize_fin_axiom : Finite.axiom wsizes.
 Proof. by case. Qed.
@@ -221,16 +224,16 @@ Module CmpStype.
   
 End CmpStype.
 
-Lemma wsize_le_U8 s: (U8 <= s)%CMP.
+Lemma wsize_le_W8 s: (W8 <= s)%CMP.
 Proof. by case: s. Qed.
 
-Lemma wsize_le_U8_inv s: (s <= U8)%CMP -> s = U8.
+Lemma wsize_le_W8_inv s: (s <= W8)%CMP -> s = W8.
 Proof. by case: s. Qed.
 
-Lemma wsize_ge_U256 s: (s <= U256)%CMP.
+Lemma wsize_ge_W512 s: (s <= W512)%CMP.
 Proof. by case s. Qed.
 
-Lemma wsize_ge_U256_inv s: (U256 <= s)%CMP -> s = U256.
+Lemma wsize_ge_W512_inv s: (W512 <= s)%CMP -> s = W512.
 Proof. by case s. Qed.
 
 Module CEDecStype.
@@ -370,12 +373,12 @@ Proof.
 Qed.
 
 (* -------------------------------------------------------------------- *)
-Definition check_size_8_64 sz := assert (sz ≤ U64)%CMP ErrType.
-Definition check_size_16_64 sz := assert ((U16 ≤ sz) && (sz ≤ U64))%CMP ErrType.
-Definition check_size_32_64 sz := assert ((U32 ≤ sz) && (sz ≤ U64))%CMP ErrType.
-Definition check_size_128_256 sz := assert ((U128 ≤ sz) && (sz ≤ U256))%CMP ErrType.
+Definition check_size_8_64 sz := assert (sz ≤ W64)%CMP ErrType.
+Definition check_size_16_64 sz := assert ((W16 ≤ sz) && (sz ≤ W64))%CMP ErrType.
+Definition check_size_32_64 sz := assert ((W32 ≤ sz) && (sz ≤ W64))%CMP ErrType.
+Definition check_size_128_512 sz := assert ((W128 ≤ sz) && (sz ≤ W512))%CMP ErrType.
 
-Lemma wsize_nle_u64_check_128_256 sz :
-  (sz ≤ U64)%CMP = false →
-  check_size_128_256 sz = ok tt.
+Lemma wsize_nle_u64_check_128_512 sz :
+  (sz ≤ W64)%CMP = false →
+  check_size_128_512 sz = ok tt.
 Proof. by case: sz. Qed.

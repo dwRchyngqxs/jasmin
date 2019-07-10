@@ -178,18 +178,18 @@ Section PROOF.
   Proof. by case: ty => //= w n [->];eauto. Qed.
 
   Lemma cast_ptrP s e i : sem_pexpr gd s e = ok (Vint i) ->
-    sem_pexpr gd s (cast_ptr e) = ok (Vword (wrepr U64 i)).
+    sem_pexpr gd s (cast_ptr e) = ok (Vword (wrepr W64 i)).
   Proof. by move=> h;rewrite /cast_ptr /cast_w /= h. Qed.
   
   Lemma cast_wordP s e i : sem_pexpr gd s e = ok (Vint i) ->
     exists sz (w:word sz), sem_pexpr gd s (cast_word e) = ok (Vword w) /\
-                           truncate_word U64 w = ok (wrepr U64 i).
+                           truncate_word W64 w = ok (wrepr W64 i).
   Proof.
     move=> he.
     have : exists sz (w:word sz), 
                 sem_pexpr gd s (cast_ptr e) = ok (Vword w) /\
-                        truncate_word U64 w = ok (wrepr U64 i). 
-    + exists U64, (wrepr U64 i); split; first by apply cast_ptrP.
+                        truncate_word W64 w = ok (wrepr W64 i). 
+    + exists W64, (wrepr W64 i); split; first by apply cast_ptrP.
       by rewrite truncate_word_u.
     case: e he => // -[] // [] //=.
     move=> e he _; move: he; rewrite /sem_sop1 /=; t_xrbindP => v -> w.
@@ -199,7 +199,7 @@ Section PROOF.
 
   Lemma mk_ofsP sz s2 ofs e i :
     sem_pexpr gd s2 e = ok (Vint i) ->
-    sem_pexpr gd s2 (mk_ofs sz e ofs) = ok (Vword (wrepr U64 (wsize_size sz * i + ofs)%Z)).
+    sem_pexpr gd s2 (mk_ofs sz e ofs) = ok (Vword (wrepr W64 (wsize_size sz * i + ofs)%Z)).
   Proof.
     rewrite /mk_ofs; case is_constP => /= [? [->] //| {e} e he] /=.
     rewrite /sem_sop2 /=.
@@ -525,7 +525,7 @@ Section PROOF.
   Lemma valid_map_arr_addr sz n xn off ofsx :
     Mvar.get m.1 {| vtype := sarr sz n; vname := xn |} = Some ofsx ->
     0 <= off < Z.pos n ->
-    wunsigned (pstk + wrepr U64 (wsize_size sz * off + ofsx)) =
+    wunsigned (pstk + wrepr W64 (wsize_size sz * off + ofsx)) =
     wunsigned pstk + wsize_size sz * off + ofsx.
   Proof.
     move=> hget hoff;have [sx /= [[?] [??? _]]] := validm hget;subst sx.
@@ -536,7 +536,7 @@ Section PROOF.
 
   Lemma valid_map_word_addr sz xn ofsx: 
     Mvar.get m.1 {| vtype := sword sz; vname := xn |} = Some ofsx ->
-    wunsigned (pstk + wrepr U64 ofsx) = wunsigned pstk + ofsx.
+    wunsigned (pstk + wrepr W64 ofsx) = wunsigned pstk + ofsx.
   Proof.
     move=> hget; have [sx /= [[?] [??? _]]] := validm hget;subst sx.
     apply wunsigned_add; case: pstk_add => ? _; have ? := wsize_size_pos sz.
@@ -1177,7 +1177,7 @@ Proof.
   + exact: Halloc.
   + exact: erefl.
   + exact: hvargs.
-  + move: Hs2; rewrite /pword_of_word (Eqdep_dec.UIP_dec Bool.bool_dec (cmp_le_refl U64)); exact: id.
+  + move: Hs2; rewrite /pword_of_word (Eqdep_dec.UIP_dec Bool.bool_dec (cmp_le_refl W64)); exact: id.
   + exact: Hs2'.
   + exact: hvr'.
   + exact: hvr''.

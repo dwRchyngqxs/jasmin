@@ -214,7 +214,7 @@ Section PROOF.
     rewrite /get_var /on_vu.
     case Heq: (vm.[_])=> [a|[]] // [<-] /=; eauto.
     case: a {Heq} => /= sz' _; eauto.
-    exists U8; split => //; by case: (sz).
+    exists W8; split => //; by case: (sz).
   Qed.
 
   Lemma disj_eq_exc v mem1 mem2 vm1 vm2:
@@ -430,7 +430,7 @@ Section PROOF.
       exists w1 (z1: word w1) w2 (z2: word w2),
         sem_pexprs gd s1' [:: e1; e2] = ok [:: Vword z1; Vword z2] /\
         (sz ≤ w1 ∧ sz ≤ w2)%CMP ∧
-      ((sz ≤ U64)%CMP →
+      ((sz ≤ W64)%CMP →
       match c with
       | Cond1 c x =>
         exists (v: bool) fvar,
@@ -946,21 +946,21 @@ Section PROOF.
   elim_div; nia.
   Qed.
 
-  Lemma check_size_16_64_ve (ve:velem) : (U16 ≤ ve)%CMP -> check_size_16_64 ve = ok tt.
+  Lemma check_size_16_64_ve (ve:velem) : (W16 ≤ ve)%CMP -> check_size_16_64 ve = ok tt.
   Proof. by rewrite /check_size_16_64 => ->; case:ve. Qed.
 
-  Lemma check_size_32_64_ve (ve:velem) : (U32 ≤ ve)%CMP -> check_size_32_64 ve = ok tt.
+  Lemma check_size_32_64_ve (ve:velem) : (W32 ≤ ve)%CMP -> check_size_32_64 ve = ok tt.
   Proof. by rewrite /check_size_32_64 => ->; case:ve. Qed.
 
-  Lemma check_size_128_256_ge sz : (U128 <= sz)%CMP -> check_size_128_256 sz = ok tt.
-  Proof. by move=> h; rewrite /check_size_128_256 h wsize_ge_U256. Qed.
+  Lemma check_size_128_256_ge sz : (W128 <= sz)%CMP -> check_size_128_512 sz = ok tt.
+  Proof. by move=> h; rewrite /check_size_128_512 h wsize_ge_W512. Qed.
 
   Lemma lower_cassgn_classifyP e l s s' v ty v' (Hs: sem_pexpr gd s e = ok v)
       (Hv': truncate_val ty v = ok v')
       (Hw: write_lval gd l v' s = ok s'):
     match lower_cassgn_classify is_var_in_memory (wsize_of_stype ty) e l with
     | LowerMov _ =>
-      exists2 sz, ty = sword sz & (sz ≤ U64)%CMP ∧
+      exists2 sz, ty = sword sz & (sz ≤ W64)%CMP ∧
       ∃ sz' (w : word sz'), (sz ≤ sz')%CMP ∧ v = Vword w
     | LowerCopn o a =>
       sem_pexprs gd s a >>= exec_sopn o = ok [:: v' ]
@@ -996,7 +996,7 @@ Section PROOF.
                exec_sopn o [::Vword v0; va; vb] >>=
                  write_lvals gd s1 lv) = ok s1' /\
                eq_exc_fresh s1' s'])]), 
-          ty = sword sz , (U16 ≤ sz)%CMP & (sz ≤ U64)%CMP]
+          ty = sword sz , (W16 ≤ sz)%CMP & (sz ≤ W64)%CMP]
     | LowerEq sz a b =>
       exists b1 b2 b3 b4, sem_pexprs gd s [:: a; b] >>= exec_sopn (Ox86_CMP sz) = ok [:: Vbool b1; Vbool b2; Vbool b3; Vbool b4; v']
     | LowerLt sz a b =>
@@ -1276,7 +1276,7 @@ Section PROOF.
             by rewrite /wandn Hw.  
           case : eqP => //= hz.
           rewrite ha1 /= ha2 /= hva1 /= hva2 /=.
-          rewrite /x86_vpandn /x86_u128_binop (wsize_nle_u64_check_128_256 hty) /=.
+          rewrite /x86_vpandn /x86_u128_binop (wsize_nle_u64_check_128_512 hty) /=.
           case/subtypeE: (truncate_val_subtype Hv') => sz'' [? _]; subst ty.
           rewrite /= in hz;subst sz''; move: Hv'.
           move: hwa2;rewrite /truncate_val /= /truncate_word cmp_le_refl /=.
@@ -1298,7 +1298,7 @@ Section PROOF.
         subst ty v'; rewrite /= in hty.
         rewrite /=.
         rewrite /x86_vpand /x86_u128_binop /=.
-        by rewrite (wsize_nle_u64_check_128_256 hty) /= zero_extend_u.
+        by rewrite (wsize_nle_u64_check_128_512 hty) /= zero_extend_u.
       (* Olor Op_w *)
       + case: eqP; last by rewrite andbF => _ _ /=; case: ifP.
         move => -> {sz}; rewrite /= /sem_sop2 /=; t_xrbindP => v1 ok_v1 v2 ok_v2.
@@ -1317,7 +1317,7 @@ Section PROOF.
         subst ty v'; rewrite /= in hty.
         rewrite /=.
         rewrite /x86_vpor /x86_u128_binop /=.
-        by rewrite (wsize_nle_u64_check_128_256 hty) /= zero_extend_u.
+        by rewrite (wsize_nle_u64_check_128_512 hty) /= zero_extend_u.
       (* Olxor Op_w *)
       + case: eqP; last by rewrite andbF => _ _ /=; case: ifP.
         move => -> {sz}; rewrite /= /sem_sop2 /=; t_xrbindP => v1 ok_v1 v2 ok_v2.
@@ -1336,7 +1336,7 @@ Section PROOF.
         subst ty v'; rewrite /= in hty.
         rewrite /=.
         rewrite /x86_vpxor /x86_u128_binop /=.
-        by rewrite (wsize_nle_u64_check_128_256 hty) /= zero_extend_u.
+        by rewrite (wsize_nle_u64_check_128_512 hty) /= zero_extend_u.
       (* Olsr *)
       + case: andP => // - [hsz64] /eqP ?; subst sz.
          rewrite /sem_pexprs /=; t_xrbindP => v1 -> v2 ->.
@@ -1482,7 +1482,7 @@ Section PROOF.
   Qed.
 
   Definition pwrepr64 n :=
-    {| pw_size := U64 ; pw_word := wrepr _ n ; pw_proof := erefl (U64 ≤ U64)%CMP |}.
+    {| pw_size := W64 ; pw_word := wrepr _ n ; pw_proof := erefl (W64 ≤ W64)%CMP |}.
 
   Lemma opn_5flags_correct vi ii s a t o cf r xs ys m s' :
     disj_fvars (read_es a) →
@@ -1499,7 +1499,7 @@ Section PROOF.
     + move=> x y n z ? ? /=; subst a y.
       set ℓ := {|
          emem := emem s;
-         evm := (evm s).[{| vtype := sword64; vname := fresh_multiplicand fv U64 |} <- ok (pwrepr64 n)] |}.
+         evm := (evm s).[{| vtype := sword64; vname := fresh_multiplicand fv W64 |} <- ok (pwrepr64 n)] |}.
       assert (eq_exc_fresh ℓ s) as e.
       by subst ℓ; apply: (conj erefl); apply vmap_eq_except_set, multiplicand_in_fv.
       assert (disj_fvars (read_e x) ∧ disj_fvars (read_es z)) as dxz.
@@ -1607,7 +1607,7 @@ Section PROOF.
       move: Hwo; apply: rbindP => vo Hvo Hwo.
       have Hlea :
         sem_pexprs gd s1' [:: wconst d; ob; wconst sc; oo] >>= exec_sopn (Ox86_LEA sz) = ok [::Vword w].
-      + by rewrite /sem_pexprs /= Hvb Hvo /= /truncate_word; subst; rewrite /= -/to_pointer Hwb Hwo /= /x86_lea -/(zero_extend U64 sc) -/(zero_extend U64 d) !zero_extend_u Hsc GRing.addrA.
+      + by rewrite /sem_pexprs /= Hvb Hvo /= /truncate_word; subst; rewrite /= -/to_pointer Hwb Hwo /= /x86_lea -/(zero_extend W64 sc) -/(zero_extend W64 d) !zero_extend_u Hsc GRing.addrA.
       have Hlea' : sem p' s1'
                     [:: MkI (warning ii Use_lea) (Copn [:: l] tag (Ox86_LEA sz) [:: wconst d; ob; wconst sc; oo])] s2'.
       + by apply: sem_seq1; apply: EmkI; apply: Eopn; rewrite /sem_sopn Hlea /= Hw'.
@@ -1636,7 +1636,7 @@ Section PROOF.
         rewrite /sem_sopn /sem_pexprs /= Hvb -/to_pointer /= Hwb /= -!/(zero_extend _ _) !zero_extend_u.
         replace (wrepr _ _) with (- d)%R by by apply: word_ext.
         by rewrite GRing.opprK Hw'.
-      set si := {| emem := emem s1'; evm := (evm s1').[{| vtype := sword64; vname := fresh_multiplicand fv U64 |} <- ok {| pw_size := U64 ; pw_word := d ; pw_proof := erefl (U64 ≤ U64)%CMP |}] |}.
+      set si := {| emem := emem s1'; evm := (evm s1').[{| vtype := sword64; vname := fresh_multiplicand fv W64 |} <- ok {| pw_size := W64 ; pw_word := d ; pw_proof := erefl (W64 ≤ W64)%CMP |}] |}.
       have hsi : eq_exc_fresh si s1'.
       + by rewrite /si; split => //= k hk; rewrite Fv.setP_neq //; apply/eqP => ?; subst k; apply: hk; exact: multiplicand_in_fv.
       have [si' [Hwi hsi']] := write_lval_same Hdisjl hsi Hw'.
@@ -1948,7 +1948,7 @@ Section PROOF.
       }
       clear C.
       case: D => des' [ xs' [ hxs' [ v' [hv' ho'] ] ] ].
-      case: (opn_5flags_correct ii t (Some U32) des' dxs hxs' hv' ho') => {hv' ho'} so'.
+      case: (opn_5flags_correct ii t (Some W32) des' dxs hxs' hv' ho') => {hv' ho'} so'.
       intuition eauto using eq_exc_freshT.
     Qed.
     Opaque lower_addcarry.

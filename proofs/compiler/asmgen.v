@@ -123,7 +123,7 @@ Definition typed_apply_garg_error {T} ii ty arg : ciexec T :=
 
 Definition check_immediate ii sz (w: u64) : ciexec (word sz) :=
   let r := zero_extend sz w in
-  if sign_extend U64 r == w
+  if sign_extend W64 r == w
   then ok r
   else typed_apply_garg_error ii (TYimm sz) (Goprd (Imm_op w)).
 
@@ -182,7 +182,7 @@ Qed.
 Definition arg_desc_eqMixin := Equality.Mixin arg_desc_beq_axiom .
 Canonical arg_desc_eqType := EqType _ arg_desc_eqMixin.
 
-Definition any_ty : arg_ty := TYimm U64.
+Definition any_ty : arg_ty := TYimm W64.
 Definition any_garg : garg := Goprd (Imm_op 0%R).
 Definition any_pexpr : pexpr := 0%Z.
 Definition any_ty_pexpr : arg_ty * pexpr := (any_ty, any_pexpr).
@@ -434,7 +434,7 @@ Definition is_var_or_immediate (x:var) e :=
 
 Definition check_esize (s: option wsize) e :=
   match e with
-  | Papp1 (Oword_of_int ws) (Pconst _) => (ws ≤ U64)%CMP
+  | Papp1 (Oword_of_int ws) (Pconst _) => (ws ≤ W64)%CMP
   | Pload s' _ _
   | Pglobal (Global s' _)
     => s == Some s'
@@ -910,32 +910,32 @@ Qed.
 
 Lemma word_uincl_ze_mw sz sz' (w: word sz) (u: u64) :
   (sz' ≤ sz)%CMP →
-  (sz' ≤ U64)%CMP →
+  (sz' ≤ W64)%CMP →
   word_uincl (zero_extend sz' w) (merge_word u w).
 Proof.
 move => hle hle'.
 by rewrite /word_uincl hle' /= /merge_word -wxor_zero_extend // zero_extend_idem // -wand_zero_extend // zero_extend_mask_word // wand0 wxor0.
 Qed.
 
-Lemma wsize_le_U256 sz : (sz ≤ U256)%CMP.
+Lemma wsize_le_W512 sz : (sz ≤ W512)%CMP.
 Proof. by case: sz. Qed.
 
-Lemma word_uincl_update_u256 sz sz' (w: word sz) (w': word sz') fl old :
+Lemma word_uincl_update_u512 sz sz' (w: word sz) (w': word sz') fl old :
   word_uincl w w' →
-  word_uincl w (update_u256 fl old w').
+  word_uincl w (update_u512 fl old w').
 Proof.
   case: fl => h /=.
   + (* MSB_CLEAR *)
     apply: (word_uincl_trans h).
     apply: word_uincl_zero_extR.
-    exact: wsize_le_U256.
+    exact: wsize_le_W512.
   (* MSB_MERGE *)
-  apply/andP; split; first exact: wsize_le_U256.
+  apply/andP; split; first exact: wsize_le_W512.
   case/andP: h => hle /eqP -> {w}.
-  rewrite -wxor_zero_extend; last exact: wsize_le_U256.
-  rewrite -wand_zero_extend; last exact: wsize_le_U256.
-  rewrite zero_extend_wshl; last exact: wsize_le_U256.
-  rewrite zero_extend_idem; last exact: wsize_le_U256.
+  rewrite -wxor_zero_extend; last exact: wsize_le_W512.
+  rewrite -wand_zero_extend; last exact: wsize_le_W512.
+  rewrite zero_extend_wshl; last exact: wsize_le_W512.
+  rewrite zero_extend_idem; last exact: wsize_le_W512.
   rewrite wshl_ovf; last first.
   + by apply/leP; case: sz sz' {w' old} hle => -[].
   by rewrite wandC wand0 wxor0.
@@ -999,7 +999,7 @@ case: xmm_register_of_var (@xmm_register_of_varI (Var ty x)) => [ r | ].
   + move => ?; subst r'.
     move: h; rewrite Fv.setP_eq => - [<-] {w} /=.
     rewrite sumbool_of_boolET; first by case: (sz).
-    move => /= _; exact: word_uincl_update_u256.
+    move => /= _; exact: word_uincl_update_u512.
   move => f v /= h; apply: eqf; move: h.
   rewrite /get_var; apply: on_vuP.
   + by move => /= b h <- {v}; move: h; rewrite Fv.setP_neq => // ->.

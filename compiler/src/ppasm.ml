@@ -11,10 +11,10 @@ type rsize = [ `U8 | `U16 | `U32 | `U64 ]
 (* -------------------------------------------------------------------- *)
 let rs_of_ws =
   function
-  | LM.U8 -> `U8
-  | LM.U16 -> `U16
-  | LM.U32 -> `U32
-  | LM.U64 -> `U64
+  | LM.W8 -> `U8
+  | LM.W16 -> `U16
+  | LM.W32 -> `U32
+  | LM.W64 -> `U64
   | _ -> assert false
 
 let rs_of_ve =
@@ -81,10 +81,10 @@ let lreg_of_reg (reg : X86_sem.register) =
 (* -------------------------------------------------------------------- *)
 let rsize_of_wsize (ws : LM.wsize) =
   match ws with
-  | U8  -> `U8
-  | U16 -> `U16
-  | U32 -> `U32
-  | U64 -> `U64
+  | W8  -> `U8
+  | W16 -> `U16
+  | W32 -> `U32
+  | W64 -> `U64
   | _   -> raise (InvalidRegSize ws)
 
 (* -------------------------------------------------------------------- *)
@@ -212,8 +212,9 @@ let pp_ct (ct : X86_sem.condt) =
 let pp_xmm_register (ws: LM.wsize) (r: X86_sem.xmm_register) : string =
   Format.sprintf "%%%smm%d"
     (match ws with
-     | U128 -> "x"
-     | U256 -> "y"
+     | W128 -> "x"
+     | W256 -> "y"
+     | W512 -> "z"
      | _ -> assert false)
     (match r with
      | XMM0 -> 0
@@ -367,9 +368,9 @@ let pp_instr name (i : X86_sem.asm) =
   | CQO ws ->
     let name =
       match ws with
-      | LM.U16 -> "cwd"
-      | LM.U32 -> "cdq"
-      | LM.U64 -> "cqo"
+      | LM.W16 -> "cwd"
+      | LM.W32 -> "cdq"
+      | LM.W64 -> "cqo"
       | _ -> assert false in
     `Instr (name, [])
 
@@ -433,7 +434,7 @@ let pp_instr name (i : X86_sem.asm) =
 
   | MOVD (ws, dst, src) ->
       let rs = rs_of_ws ws in
-      `Instr ((if ws = U64 then "movq" else "movd"), [pp_opr rs src; pp_xmm_register U128 dst])
+      `Instr ((if ws = W64 then "movq" else "movd"), [pp_opr rs src; pp_xmm_register W128 dst])
 
   | VMOVDQU (sz, dst, src) ->
     `Instr ("vmovdqu", [pp_rm128 sz src; pp_rm128 sz dst])
@@ -458,15 +459,15 @@ let pp_instr name (i : X86_sem.asm) =
   | VPMULU (sz, dst, src1, src2) -> pp_xmm_binop "vpmuludq" sz dst src1 src2
 
   | VPEXTR (ve, dst, src, i) ->
-    let ve' = LM.(match ve with U32 -> VE32 | U64 -> VE64 | _ -> assert false) in
-    `Instr (pp_viname ve' "vpextr", [ pp_imm (Conv.bi_of_int8 i); pp_xmm_register U128 src; pp_opr (rs_of_ws ve) dst ])
+    let ve' = LM.(match ve with W32 -> VE32 | W64 -> VE64 | _ -> assert false) in
+    `Instr (pp_viname ve' "vpextr", [ pp_imm (Conv.bi_of_int8 i); pp_xmm_register W128 src; pp_opr (rs_of_ws ve) dst ])
 
   | VPINSR (ve, dst, src1, src2, i) ->
     let rs = match ve with
       | LM.VE8 | LM.VE16 | LM.VE32 -> `U32
       | LM.VE64 -> `U64
     in
-    `Instr (pp_viname ve "vpinsr", [ pp_imm (Conv.bi_of_int8 i) ; pp_opr rs src2 ; pp_xmm_register U128 src1 ; pp_xmm_register U128 dst ])
+    `Instr (pp_viname ve "vpinsr", [ pp_imm (Conv.bi_of_int8 i) ; pp_opr rs src2 ; pp_xmm_register W128 src1 ; pp_xmm_register W128 dst ])
 
   | VPSLL (ve, sz, dst, src1, src2) ->
     `Instr (pp_viname ve "vpsll", [pp_imm (Conv.bi_of_int8 src2); pp_rm128 sz src1; pp_rm128 sz dst])
@@ -494,16 +495,16 @@ let pp_instr name (i : X86_sem.asm) =
 
   | VPBLENDD (sz, dst, src1, src2, mask) -> pp_xxri "vpblendd" sz dst src1 src2 mask
   | VPBROADCAST(ve, sz, dst, src) ->
-    `Instr (pp_viname ve "vpbroadcast", [ pp_rm128 U128 src; pp_xmm_register sz dst])
+    `Instr (pp_viname ve "vpbroadcast", [ pp_rm128 W128 src; pp_xmm_register sz dst])
   | VBROADCASTI128(dst, src) ->
-    `Instr ("vbroadcasti128", [ pp_m128 src; pp_xmm_register U256 dst])
+    `Instr ("vbroadcasti128", [ pp_m128 src; pp_xmm_register W512 dst])
   | VEXTRACTI128 (dst, src, i) ->
-    `Instr ("vextracti128", [ pp_imm (Conv.bi_of_int8 i); pp_xmm_register U256 src ; pp_rm128 U128 dst ])
+    `Instr ("vextracti128", [ pp_imm (Conv.bi_of_int8 i); pp_xmm_register W512 src ; pp_rm128 W128 dst ])
   | VINSERTI128 (dst, src1, src2, i) ->
-    `Instr ("vinserti128", [ pp_imm (Conv.bi_of_int8 i); pp_rm128 U128 src2 ; pp_xmm_register U256 src1 ; pp_xmm_register U256 dst ])
-  | VPERM2I128 (dst, src1, src2, i) -> pp_xxri "vperm2i128" U256 dst src1 src2 i
+    `Instr ("vinserti128", [ pp_imm (Conv.bi_of_int8 i); pp_rm128 W128 src2 ; pp_xmm_register W512 src1 ; pp_xmm_register W512 dst ])
+  | VPERM2I128 (dst, src1, src2, i) -> pp_xxri "vperm2i128" W512 dst src1 src2 i
   | VPERMQ (dst, src, i) ->
-    `Instr("vpermq", [ pp_imm (Conv.bi_of_int8 i); pp_rm128 U256 src; pp_xmm_register U256 dst ])
+    `Instr("vpermq", [ pp_imm (Conv.bi_of_int8 i); pp_rm128 W512 src; pp_xmm_register W512 dst ])
 
 (* -------------------------------------------------------------------- *)
 let pp_instr name (fmt : Format.formatter) (i : X86_sem.asm) =
@@ -605,12 +606,13 @@ let x86_64_callee_save = [
 (* -------------------------------------------------------------------- *)
 let align_of_ws =
   function
-  | Type.U8 -> 0
-  | Type.U16 -> 1
-  | Type.U32 -> 2
-  | Type.U64 -> 3
-  | Type.U128 -> 4
-  | Type.U256 -> 5
+  | Type.W8 -> 0
+  | Type.W16 -> 1
+  | Type.W32 -> 2
+  | Type.W64 -> 3
+  | Type.W128 -> 4
+  | Type.W256 -> 5
+  | Type.W512 -> 6
 
 let pp_align ws =
   let n = align_of_ws ws in
@@ -618,11 +620,11 @@ let pp_align ws =
 
 let decl_of_ws =
   function
-  | Type.U8 -> Some ".byte"
-  | Type.U16 -> Some ".word"
-  | Type.U32 -> Some ".long"
-  | Type.U64 -> Some ".quad"
-  | Type.U128 | Type.U256 -> None
+  | Type.W8 -> Some ".byte"
+  | Type.W16 -> Some ".word"
+  | Type.W32 -> Some ".long"
+  | Type.W64 -> Some ".quad"
+  | Type.W128 | Type.W256 | Type.W512 -> None
 
 let bigint_to_bytes n z =
   let base = Bigint.of_int 256 in

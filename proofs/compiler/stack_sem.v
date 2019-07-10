@@ -42,7 +42,7 @@ Local Open Scope vmap.
 Local Open Scope seq_scope.
 
 Module S.
-  Notation vstk nstk := {|v_var := {|vtype := sword U64; vname := nstk|}; v_info := xH|}.
+  Notation vstk nstk := {|v_var := {|vtype := sword W64; vname := nstk|}; v_info := xH|}.
 
   Section SEM.
 

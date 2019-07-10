@@ -12,12 +12,12 @@ type symbol = string
 type pident = symbol L.located
 
 (* -------------------------------------------------------------------- *)
-type wsize = [ `W8 | `W16 | `W32 | `W64 | `W128 | `W256 ]
+type wsize = [ `W8 | `W16 | `W32 | `W64 | `W128 | `W256 | `W512 ]
 
 type sign = [ `Unsigned | `Signed ]
 
 type vesize = [`W1 | `W2 | `W4 | `W8 | `W16 | `W32 | `W64 | `W128]
-type vsize   = [ `V2 | `V4 | `V8 | `V16 | `V32 ]
+type vsize   = [ `V2 | `V4 | `V8 | `V16 | `V32 | `V64 ]
 
 type swsize  = wsize * sign
 type sowsize  = wsize option * sign
@@ -34,6 +34,7 @@ let bits_of_wsize : wsize -> int =
   | `W64  -> 64
   | `W128 -> 128
   | `W256 -> 256
+  | `W512 -> 512
 
 let suffix_of_sign : sign -> string =
   function
@@ -55,6 +56,7 @@ let int_of_vsize : vsize -> int =
   | `V8  -> 8
   | `V16 -> 16
   | `V32 -> 32
+  | `V64 -> 64
 
 let bits_of_vesize : vesize -> int =
   function

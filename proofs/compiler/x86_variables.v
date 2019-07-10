@@ -148,7 +148,7 @@ Definition var_of_register r :=
   {| vtype := sword64 ; vname := string_of_register r |}. 
 
 Definition var_of_xmm_register r :=
-  {| vtype := sword256 ; vname := string_of_xmm_register r |}.
+  {| vtype := sword512 ; vname := string_of_xmm_register r |}.
 
 Definition var_of_flag f := 
   {| vtype := sbool; vname := string_of_rflag f |}. 
@@ -201,7 +201,7 @@ Proof.
 Qed.
 
 Definition xmm_register_of_var (v:var) : option xmm_register :=
-  if v.(vtype) == sword256 then xmm_reg_of_string v.(vname)
+  if v.(vtype) == sword512 then xmm_reg_of_string v.(vname)
   else None.
 
 Lemma xmm_register_of_varI v r :
@@ -374,7 +374,7 @@ Definition assemble_cond ii (e: pexpr) : ciexec condt :=
 
 Definition reg_of_var ii (v: var) :=
   match v with
-  | Var (sword U64) s =>
+  | Var (sword W64) s =>
      match (reg_of_string s) with
      | Some r => ciok r
      | None => cierror ii (Cerr_assembler (invalid_register s))

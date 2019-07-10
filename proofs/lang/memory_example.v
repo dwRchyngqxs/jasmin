@@ -103,7 +103,7 @@ Module Type Endianness.
 End Endianness.
 
 Module BigEndian : Endianness.
-  Definition encode sz (w: word sz) : seq u8 := split_vec U8 w.
+  Definition encode sz (w: word sz) : seq u8 := split_vec W8 w.
   Definition decode sz (n: seq u8) : result unit (word sz) := ok (make_vec sz n).
 
   Lemma size_encode sz (w: word sz) :
